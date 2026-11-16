@@ -22,7 +22,7 @@ python3 skills/us-undervalued-growth-screener/scripts/run_pipeline.py \
   --output-dir reports/us-undervalued-growth-screener
 ```
 
-The runner keeps bulk FMP responses on disk, uses a persistent SQLite cache, normalizes FY1 estimates, validates 20-day ADDV, builds the four discovery lanes, and prints only a compact run summary. Claude Code then reads selected candidate packets and performs the existing SEC/IR underwriting and strict final sequence.
+The runner keeps bulk FMP responses on disk, uses a persistent SQLite cache, normalizes FY1 estimates, validates 20-day ADDV, builds the four discovery lanes, and prints only a compact run summary. Codex then reads selected candidate packets and performs the existing SEC/IR underwriting and strict final sequence.
 
 ## Reused central infrastructure
 
@@ -45,10 +45,10 @@ python3 scripts/generate_fmp_client.py --check
 
 ## Operational changes
 
-- Direct FMP HTTP calls replace bulk FMP MCP calls in Claude Code.
+- Direct FMP HTTP calls replace bulk FMP MCP calls in Codex.
 - Adaptive market-cap-band splitting prevents silent company-screener truncation.
 - Bulk analyst-estimate and EOD endpoints are attempted first; bounded per-symbol fallbacks remain available.
 - Exact liquidity work is allocated by GARP opportunity lane.
 - Raw provider payloads are never printed to stdout and should not be loaded into model context.
-- The Claude Code default deep-dive commitment is three names.
+- The Codex default deep-dive commitment is three names.
 - `evaluate_candidates.py`, `prepublish_audit.py`, and `bundle_run_artifacts.py` remain the publication gates.

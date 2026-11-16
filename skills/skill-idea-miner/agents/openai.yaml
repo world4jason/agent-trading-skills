@@ -1,0 +1,4 @@
+interface:
+  display_name: "從指定對話擷取台股 skill 改善題目"
+  short_description: "Taiwan stocks and ETFs: skill-idea-miner"
+  default_prompt: "使用 $skill-idea-miner，從指定對話擷取台股 skill 改善題目。"

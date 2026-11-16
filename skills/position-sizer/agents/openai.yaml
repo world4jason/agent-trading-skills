@@ -1,0 +1,4 @@
+interface:
+  display_name: "計算台股股數與張數"
+  short_description: "Taiwan stocks and ETFs: position-sizer"
+  default_prompt: "使用 $position-sizer，計算台股股數與張數。"

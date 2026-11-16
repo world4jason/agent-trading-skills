@@ -142,7 +142,7 @@
 {{#if fmp_data}}
 - FMP API (P/E ratios for valuation analysis)
 {{/if}}
-- WebSearch (narrative confirmation for top themes)
+- web search (narrative confirmation for top themes)
 
 **Limitations:**
 - Theme definitions are static (predefined in cross_sector_themes.md)

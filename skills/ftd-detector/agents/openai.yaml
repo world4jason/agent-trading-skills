@@ -1,0 +1,4 @@
+interface:
+  display_name: "辨識台股後續跟進日條件"
+  short_description: "Taiwan stocks and ETFs: ftd-detector"
+  default_prompt: "使用 $ftd-detector，辨識台股後續跟進日條件。"

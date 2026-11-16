@@ -1,0 +1,4 @@
+interface:
+  display_name: "Contrarian Setup Gate"
+  short_description: "Trading toolkit: Contrarian Setup Gate"
+  default_prompt: "Use $contrarian-setup-gate to help with my trading research request."

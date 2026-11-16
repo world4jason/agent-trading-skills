@@ -3,6 +3,11 @@ name: options-strategy-advisor
 description: Options trading strategy analysis and simulation tool. Provides theoretical pricing using Black-Scholes model, Greeks calculation, strategy P/L simulation, and risk management guidance. Use when user requests options strategy analysis, covered calls, protective puts, spreads, iron condors, earnings plays, or options risk management. Includes volatility analysis, position sizing, and earnings-based strategy recommendations. Educational focus with practical trade simulation.
 ---
 
+## Codex execution
+
+Before running this skill, read [Codex runtime](/Users/world4jason/.codex/skill-bundles/codex-trading-skills/CODEX_RUNTIME.md). It defines this installation's interpreter, resource paths, available-tool mapping, and external prerequisites.
+
+
 # Options Strategy Advisor
 
 ## Overview

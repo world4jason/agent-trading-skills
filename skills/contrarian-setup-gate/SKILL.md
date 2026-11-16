@@ -3,6 +3,11 @@ name: contrarian-setup-gate
 description: Synthesize the three Jason Shapiro contrarian-pipeline verdicts (COT crowding, news-reaction failure, weekly price-action confirmation) into one actionable setup_status via a fail-closed precedence state machine. Pure, offline synthesis -- no network, no API keys, no computation beyond validation and precedence.
 ---
 
+## Codex execution
+
+Before running this skill, read [Codex runtime](/Users/world4jason/.codex/skill-bundles/codex-trading-skills/CODEX_RUNTIME.md). It defines this installation's interpreter, resource paths, available-tool mapping, and external prerequisites.
+
+
 # Contrarian Setup Gate
 
 ## Overview

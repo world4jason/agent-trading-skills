@@ -1,0 +1,4 @@
+interface:
+  display_name: "篩選台股 CANSLIM 成長條件"
+  short_description: "Taiwan stocks and ETFs: canslim-screener"
+  default_prompt: "使用 $canslim-screener，篩選台股 CANSLIM 成長條件。"

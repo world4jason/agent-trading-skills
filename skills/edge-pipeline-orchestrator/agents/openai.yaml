@@ -1,0 +1,4 @@
+interface:
+  display_name: "串接台股策略研究流程"
+  short_description: "Taiwan stocks and ETFs: edge-pipeline-orchestrator"
+  default_prompt: "使用 $edge-pipeline-orchestrator，串接台股策略研究流程。"

@@ -1,142 +1,27 @@
 ---
 name: stockbee-20pct-study
-description: Build and maintain a Stockbee-style daily 20% mover study for US equities by scanning +20%/-20% movers, classifying catalysts and setup context, updating forward outcomes, and summarizing cohort patterns. Use when the user asks to run a daily 20% study, backfill historical 20% movers, find recurring edge patterns, or build a model book of explosive market moves.
+description: 研究台股大幅波動樣本。按使用者指定期間/門檻整理台股走勢、催化與市場狀態，標註除權息分割；不得把公司行動造成的原始價差當作真實漲跌。 適用於台灣上市、上櫃股票與
+  ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Stockbee 20% Study
+# 研究台股大幅波動樣本
 
-Build a daily event study of US equities that moved +20% or -20% over a defined window. Convert large movers into structured study records, classify the catalyst and chart context, update forward outcomes, and summarize recurring patterns for research.
+按使用者指定期間/門檻整理台股走勢、催化與市場狀態，標註除權息分割；不得把公司行動造成的原始價差當作真實漲跌。
 
-This skill is a research, model-book, and setup-fluency workflow. It does not generate buy/sell signals, place orders, or output broker execution instructions.
+## 執行流程
 
-## When to Use
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-research.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-- User wants to run a Stockbee-style daily 20% mover study
-- User asks which stocks moved +20% or -20% today, this week, or over a configurable lookback window
-- User wants to backfill historical 20% movers and study what happened next
-- User wants to identify continuation, reversal, exhaustion, or theme-cluster patterns
-- User wants to build a model book of explosive winners, major failures, and failed low-quality pops
-- User wants edge hints for downstream strategy research rather than immediate trade signals
+## 方法論資源
 
-## Prerequisites
+- [catalyst_taxonomy.md](references/catalyst_taxonomy.md)
+- [cohort_mining_rules.md](references/cohort_mining_rules.md)
+- [event_schema.md](references/event_schema.md)
+- [methodology.md](references/methodology.md)
+- [scoring_system.md](references/scoring_system.md)
 
-- Python 3.9+
-- FMP API key for live US universe scans, or offline OHLCV JSON via `--prices-json`
-- Optional structured news/catalyst JSON for higher-quality catalyst classification
-- Recommended market regime artifact from `market-regime-daily`
-- Recommended local state path: `state/stockbee/20pct_study_events.jsonl`
-
-## Workflow
-
-### Step 1: Scan for 20% Movers
-
-Run after the US market close, or against the latest complete daily bar in an offline OHLCV file.
-
-```bash
-python3 skills/stockbee-20pct-study/scripts/run_20pct_study.py scan \
-  --fmp-universe \
-  --max-symbols 300 \
-  --as-of 2026-06-28 \
-  --lookback-days 5 \
-  --min-abs-return-pct 20 \
-  --min-price 5 \
-  --min-dollar-volume 20000000 \
-  --include-down-movers \
-  --state-file state/stockbee/20pct_study_events.jsonl \
-  --output-dir reports/
-```
-
-Use offline data instead of FMP:
-
-```bash
-python3 skills/stockbee-20pct-study/scripts/run_20pct_study.py scan \
-  --prices-json data/us_daily_ohlcv.json \
-  --as-of 2026-06-28 \
-  --lookback-days 5 \
-  --include-down-movers \
-  --state-file state/stockbee/20pct_study_events.jsonl \
-  --output-dir reports/
-```
-
-### Step 2: Enrich and Classify Events
-
-Use structured catalyst data when available. The enrichment step is best-effort: if no news record is found, the event remains a price-only `NO_CLEAR_NEWS` study record.
-
-```bash
-python3 skills/stockbee-20pct-study/scripts/run_20pct_study.py enrich \
-  --events-json reports/stockbee_20pct_events_YYYY-MM-DD_HHMMSS.json \
-  --news-json data/catalysts_YYYY-MM-DD.json \
-  --market-regime reports/market_regime_latest.json \
-  --state-file state/stockbee/20pct_study_events.jsonl \
-  --output-dir reports/
-```
-
-### Step 3: Update Matured Forward Outcomes
-
-Update 1-day, 3-day, 5-day, 10-day, and 20-day forward outcomes after enough future bars exist.
-
-```bash
-python3 skills/stockbee-20pct-study/scripts/run_20pct_study.py update-outcomes \
-  --prices-json data/us_daily_ohlcv.json \
-  --state-file state/stockbee/20pct_study_events.jsonl \
-  --horizons 1,3,5,10,20 \
-  --output-dir reports/
-```
-
-The update records close return, MFE, MAE, direction-adjusted continuation return, and outcome tags.
-
-### Step 4: Summarize Cohorts
-
-```bash
-python3 skills/stockbee-20pct-study/scripts/run_20pct_study.py summarize \
-  --state-file state/stockbee/20pct_study_events.jsonl \
-  --group-by direction,catalyst.label,technical_context.pattern_label,technical_context.close_quality \
-  --min-sample 10 \
-  --output-dir reports/
-```
-
-Treat `rule_candidates` and exported edge hints as research prompts. Require representative chart review, sample-size thresholds, and out-of-sample validation before changing trade rules.
-
-### Step 5: Historical Backfill
-
-```bash
-python3 skills/stockbee-20pct-study/scripts/run_20pct_study.py backfill \
-  --from 2020-01-01 \
-  --to 2026-06-28 \
-  --prices-json data/us_daily_ohlcv.json \
-  --min-abs-return-pct 20 \
-  --include-down-movers \
-  --state-file state/stockbee/20pct_study_events.jsonl \
-  --output-dir reports/
-```
-
-Backfill records are marked `CURRENT_UNIVERSE_BACKFILL_SURVIVORSHIP_BIAS` by default. Add `--survivorship-complete` only when the supplied OHLCV includes delisted symbols and historical universe coverage.
-
-## Output Format
-
-- `stockbee_20pct_events_YYYY-MM-DD_HHMMSS.json` — scan metadata and event records
-- `stockbee_20pct_daily_report_YYYY-MM-DD_HHMMSS.md` — human-readable daily 20% study report
-- `stockbee_20pct_enriched_YYYY-MM-DD_HHMMSS.json` — enriched event records
-- `stockbee_20pct_outcome_update_YYYY-MM-DD_HHMMSS.json/md` — matured forward outcome update
-- `stockbee_20pct_cohort_summary_YYYY-MM-DD_HHMMSS.json/md` — cohort statistics and rule candidates
-- `stockbee_20pct_edge_hints_YYYY-MM-DD_HHMMSS.yaml` — edge-hint export for downstream research skills
-- `state/stockbee/20pct_study_events.jsonl` — durable 20% mover model book
-
-## Resources
-
-- `references/methodology.md` — 20% study methodology and review checklist
-- `references/event_schema.md` — JSONL event record schema
-- `references/catalyst_taxonomy.md` — catalyst and risk label definitions
-- `references/scoring_system.md` — event quality and study priority scoring
-- `references/cohort_mining_rules.md` — overfitting controls and sample-size rules
-- `scripts/run_20pct_study.py` — CLI for scan, enrich, update-outcomes, summarize, and backfill
-
-## Shared FMP client
-
-Live FMP access uses the bundled generated `scripts/fmp_client.py`, loaded only
-when an FMP run starts, so offline modes still work without `requests`. CLI
-key/environment precedence, the API-call budget and successful output shapes are
-preserved. Requests use stable endpoints only; a denied, empty or failed stable
-request does not fall back to retired v3 URLs. The shared client masks raw and
-URL-encoded key echoes, retries malformed JSON once, and retries a 429 at most once,
-after a 60-second wait, before stopping on a repeated rate limit.
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

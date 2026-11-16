@@ -1,4 +1,4 @@
 interface:
-  display_name: "Edge Hint Extractor"
-  short_description: "Convert observations/news into canonical hints.yaml"
-  default_prompt: "Extract structured edge hints from daily market observations and optional LLM ideation output."
+  display_name: "擷取台股研究線索"
+  short_description: "Taiwan stocks and ETFs: edge-hint-extractor"
+  default_prompt: "使用 $edge-hint-extractor，擷取台股研究線索。"

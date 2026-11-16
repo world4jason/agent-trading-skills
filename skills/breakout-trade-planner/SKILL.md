@@ -1,96 +1,23 @@
 ---
 name: breakout-trade-planner
-description: Generate Minervini-style breakout trade plans from VCP screener output with worst-case risk calculation, portfolio heat management, and Alpaca-compatible order templates (stop-limit bracket for pre-placement, limit bracket for post-confirmation). Use when user has VCP screener results and wants actionable trade plans with entry/stop/target levels and position sizing.
+description: 製作台股突破交易計畫。依實際平台價、停損、台股跳動單位與可用現金計算；輸出研究計畫，不輸出 Alpaca 訂單或宣稱券商支援括號單。 適用於台灣上市、上櫃股票與
+  ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Breakout Trade Planner
+# 製作台股突破交易計畫
 
-Generate trade plans from VCP screener output following Mark Minervini's breakout methodology. Calculate position sizes using worst-case entry prices, enforce portfolio risk limits, and output Alpaca API-compatible order templates.
+依實際平台價、停損、台股跳動單位與可用現金計算；輸出研究計畫，不輸出 Alpaca 訂單或宣稱券商支援括號單。
 
-## When to Use
+## 執行流程
 
-- User has VCP screener JSON output and wants trade plans
-- User asks for breakout entry/stop/target calculation
-- User wants Alpaca order templates for VCP breakout candidates
-- User needs position sizing with portfolio heat management
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-planning.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-## Prerequisites
+## 方法論資源
 
-- VCP screener JSON output with `schema_version: "1.0"`
-- No API keys required (works with local JSON files)
-- No external skill dependencies (position sizing is built-in)
+- [minervini_entry_rules.md](references/minervini_entry_rules.md)
 
-## Workflow
-
-### Step 1: Generate Trade Plans
-
-Run the planner with VCP screener output:
-
-```bash
-python3 skills/breakout-trade-planner/scripts/plan_breakout_trades.py \
-  --input reports/vcp_screener_YYYY-MM-DD.json \
-  --account-size 100000 \
-  --risk-pct 0.5 \
-  --output-dir reports/
-```
-
-### Step 2: Review Output
-
-Read the generated JSON and Markdown reports. Present:
-
-1. **Actionable Orders** — Pre-breakout candidates with order templates
-2. **Revalidation** — Breakout-state candidates needing live confirmation
-3. **Watchlist** — Developing VCP candidates to monitor
-4. **Rejected/Deferred/Constrained** — Candidates filtered by Gate or portfolio limits
-### Step 3: Explain Trade Plans
-
-For each actionable order, explain:
-- Entry levels (signal vs worst-case) and stop-loss placement
-- R-multiple targets and reward-risk ratio
-- Two execution modes: pre_place (stop-limit) vs post_confirm (limit after 5min confirmation)
-- Portfolio risk contribution and cumulative heat
-- Broker and intraday constraints: these templates are planning artifacts, not broker permission. If the plan could create same-day round trips or use margin, confirm the user's broker-specific intraday/day-trading controls. FINRA replaced the old pattern-day-trader day-count and $25,000 minimum-equity requirements with intraday margin standards effective 2026-06-04, with broker phase-in allowed through 2027-10-20.
-
-## Minervini Gate (Filtering Criteria)
-
-Candidates must pass ALL conditions:
-
-| Condition | Pre-breakout | Breakout |
-|-----------|-------------|----------|
-| valid_vcp | True | True |
-| rating_band | good/strong/textbook | good/strong/textbook |
-| risk_pct_worst | <= 8.0% | <= 8.0% |
-| breakout_volume | — | True |
-| distance_from_pivot | — | <= max_chase_pct |
-| current_price | — | <= worst_entry |
-
-## CLI Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| --account-size | (required) | Account equity in dollars |
-| --risk-pct | 0.5 | Base risk % per trade |
-| --max-position-pct | 10.0 | Max single position % |
-| --max-sector-pct | 30.0 | Max sector exposure % |
-| --max-portfolio-heat-pct | 6.0 | Max total open risk % |
-| --target-r-multiple | 2.0 | Take-profit R-multiple |
-| --stop-buffer-pct | 1.0 | Stop buffer below contraction low |
-| --max-chase-pct | 2.0 | Max chase above pivot |
-| --pivot-buffer-pct | 0.1 | Pivot buffer for buy-stop trigger |
-| --current-exposure-json | None | Existing portfolio exposure |
-
-## Output
-
-- `breakout_trade_plan_YYYY-MM-DD_HHMMSS.json` — Structured plans with order templates
-- `breakout_trade_plan_YYYY-MM-DD_HHMMSS.md` — Human-readable report
-
-## Exchange Calendar and Replay
-
-Install `requirements.txt` before running the planner. `--as-of` accepts either
-`YYYY-MM-DD` (00:00 America/New_York) or an offset-bearing ISO-8601 timestamp.
-Plan validity uses the current not-yet-closed XNYS session or the next real
-session after a close, weekend, or exchange holiday.
-
-## Resources
-
-- `references/minervini_entry_rules.md` — Entry methodology and rules
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

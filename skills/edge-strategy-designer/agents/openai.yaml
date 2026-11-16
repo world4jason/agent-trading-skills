@@ -1,4 +1,4 @@
 interface:
-  display_name: "Edge Strategy Designer"
-  short_description: "Convert abstract concepts into strategy drafts"
-  default_prompt: "Design concrete strategy draft variants from edge concepts and emit exportable tickets when v1-compatible."
+  display_name: "設計可驗證的台股策略規則"
+  short_description: "Taiwan stocks and ETFs: edge-strategy-designer"
+  default_prompt: "使用 $edge-strategy-designer，設計可驗證的台股策略規則。"

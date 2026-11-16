@@ -1,0 +1,16 @@
+schema_version: 1
+id: trade-planning
+display_name: 台股 trade-planning
+required_skills:
+- drawdown-circuit-breaker
+- position-sizer
+- pre-trade-discipline-gate
+- technical-analyst
+- us-stock-analysis
+recommended_skills: []
+optional_skills: []
+related_workflows:
+- swing-opportunity-daily
+- earnings-weekly
+- stockbee-ep-daily
+- multi-asset-opportunity-daily

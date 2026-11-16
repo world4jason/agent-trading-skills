@@ -3,6 +3,11 @@ name: crypto-regime-analyzer
 description: Quantifies crypto market regime health using free, keyless public data (CoinGecko + Binance funding). Generates a 0-100 composite score across 6 components (100 = risk-on) with a posture recommendation. No API key required. Use when user asks about crypto market conditions, whether it's alt season, BTC dominance, crypto risk-on vs risk-off, funding rates, or whether crypto exposure should be increased or reduced.
 ---
 
+## Codex execution
+
+Before running this skill, read [Codex runtime](/Users/world4jason/.codex/skill-bundles/codex-trading-skills/CODEX_RUNTIME.md). It defines this installation's interpreter, resource paths, available-tool mapping, and external prerequisites.
+
+
 # Crypto Regime Analyzer Skill
 
 ## Purpose

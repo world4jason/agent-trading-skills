@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理影響台股的市場新聞"
+  short_description: "Taiwan stocks and ETFs: market-news-analyst"
+  default_prompt: "使用 $market-news-analyst，整理影響台股的市場新聞。"

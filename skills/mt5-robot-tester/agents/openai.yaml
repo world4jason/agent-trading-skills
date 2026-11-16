@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mt5 Robot Tester"
+  short_description: "Trading toolkit: Mt5 Robot Tester"
+  default_prompt: "Use $mt5-robot-tester to help with my trading research request."

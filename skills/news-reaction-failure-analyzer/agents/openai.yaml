@@ -1,0 +1,4 @@
+interface:
+  display_name: "分析台股對消息反應失敗"
+  short_description: "Taiwan stocks and ETFs: news-reaction-failure-analyzer"
+  default_prompt: "使用 $news-reaction-failure-analyzer，分析台股對消息反應失敗。"

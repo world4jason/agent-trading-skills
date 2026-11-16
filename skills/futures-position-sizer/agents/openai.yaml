@@ -1,0 +1,4 @@
+interface:
+  display_name: "Futures Position Sizer"
+  short_description: "Trading toolkit: Futures Position Sizer"
+  default_prompt: "Use $futures-position-sizer to help with my trading research request."

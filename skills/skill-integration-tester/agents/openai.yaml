@@ -1,0 +1,4 @@
+interface:
+  display_name: "驗證台股 skill 流程銜接"
+  short_description: "Taiwan stocks and ETFs: skill-integration-tester"
+  default_prompt: "使用 $skill-integration-tester，驗證台股 skill 流程銜接。"

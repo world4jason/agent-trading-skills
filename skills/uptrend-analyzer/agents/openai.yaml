@@ -1,0 +1,4 @@
+interface:
+  display_name: "計算台股上升趨勢參與度"
+  short_description: "Taiwan stocks and ETFs: uptrend-analyzer"
+  default_prompt: "使用 $uptrend-analyzer，計算台股上升趨勢參與度。"

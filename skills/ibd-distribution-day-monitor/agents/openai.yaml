@@ -1,0 +1,4 @@
+interface:
+  display_name: "追蹤台股出貨日條件"
+  short_description: "Taiwan stocks and ETFs: ibd-distribution-day-monitor"
+  default_prompt: "使用 $ibd-distribution-day-monitor，追蹤台股出貨日條件。"

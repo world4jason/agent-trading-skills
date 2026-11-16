@@ -1,0 +1,4 @@
+interface:
+  display_name: "審查台股策略設計"
+  short_description: "Taiwan stocks and ETFs: edge-strategy-reviewer"
+  default_prompt: "使用 $edge-strategy-reviewer，審查台股策略設計。"

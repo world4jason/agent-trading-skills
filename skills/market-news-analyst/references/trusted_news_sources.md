@@ -449,7 +449,7 @@
 - Look for contrary indicators
 - Verify facts across multiple sources
 
-### WebSearch Query Recommendations
+### web search Query Recommendations
 
 **For Recent News (Past 10 Days):**
 - "stock market news past week"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "篩選台股價值與股利條件"
+  short_description: "Taiwan stocks and ETFs: value-dividend-screener"
+  default_prompt: "使用 $value-dividend-screener，篩選台股價值與股利條件。"

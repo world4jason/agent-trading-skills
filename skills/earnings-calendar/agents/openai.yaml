@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理台股財報與法說事件"
+  short_description: "Taiwan stocks and ETFs: earnings-calendar"
+  default_prompt: "使用 $earnings-calendar，整理台股財報與法說事件。"

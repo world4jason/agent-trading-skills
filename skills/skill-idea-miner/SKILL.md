@@ -1,110 +1,23 @@
 ---
 name: skill-idea-miner
-description: Mine Claude Code session logs for skill idea candidates. Use when running the weekly skill generation pipeline to extract, score, and backlog new skill ideas from recent coding sessions.
+description: 從指定對話擷取台股 skill 改善題目。僅讀取使用者選定的 Codex 對話或匯出檔，保留實際證據並評估價值；不得掃描無關私密紀錄或啟動排程。
+  適用於台灣上市、上櫃股票與 ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Skill Idea Miner
+# 從指定對話擷取台股 skill 改善題目
 
-Automatically extract skill idea candidates from Claude Code session logs,
-score them for novelty, feasibility, and trading value, and maintain a
-prioritized backlog for downstream skill generation.
+僅讀取使用者選定的 Codex 對話或匯出檔，保留實際證據並評估價值；不得掃描無關私密紀錄或啟動排程。
 
-## When to Use
+## 執行流程
 
-- Weekly automated pipeline run (Saturday 06:00 via launchd)
-- Manual backlog refresh: `python3 scripts/run_skill_generation_pipeline.py --mode weekly`
-- Dry-run to preview candidates without LLM scoring
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-meta.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-## Prerequisites
+## 方法論資源
 
-- **Python 3.10+** with `pyyaml` package
-- **Claude CLI** installed and authenticated (`claude --version` to verify)
-- **Session logs** in `~/.claude/projects/<project>/` (created automatically by Claude Code)
-- No API keys required (uses Claude CLI for LLM calls)
+- [idea_extraction_rubric.md](references/idea_extraction_rubric.md)
 
-## Workflow
-
-### Quick Start
-
-Run these from the repository root, so the backlog is the one the pipeline reads.
-
-```bash
-# Dry-run: preview mined candidates without LLM scoring
-python3 skills/skill-idea-miner/scripts/mine_session_logs.py --dry-run --output-dir reports/
-
-# Full mining with scoring (requires Claude CLI)
-python3 skills/skill-idea-miner/scripts/mine_session_logs.py --output-dir reports/
-
-# Score existing candidates
-python3 skills/skill-idea-miner/scripts/score_ideas.py \
-  --candidates reports/raw_candidates.yaml \
-  --backlog logs/.skill_generation_backlog.yaml
-```
-
-### Stage 1: Session Log Mining
-
-1. Enumerate session logs from allowlist projects in `~/.claude/projects/`
-2. Filter to past 7 days by file mtime, confirm with `timestamp` field
-3. Extract user messages (`type: "user"`, `userType: "external"`)
-4. Extract tool usage patterns from assistant messages
-5. Run deterministic signal detection:
-   - Skill usage frequency (`skills/*/` path references)
-   - Error patterns (non-zero exit codes, `is_error` flags, exception keywords)
-   - Repetitive tool sequences (3+ tools repeated 3+ times)
-   - Automation request keywords (English and Japanese)
-   - Unresolved requests (5+ minute gap after user message)
-6. Invoke Claude CLI headless for idea abstraction
-7. Output `raw_candidates.yaml`
-
-### Stage 2: Scoring and Deduplication
-
-1. Load existing skills from `skills/*/SKILL.md` frontmatter
-2. Deduplicate via Jaccard similarity (threshold > 0.5) against:
-   - Existing skill names and descriptions
-   - Existing backlog ideas
-3. Score non-duplicate candidates with Claude CLI:
-   - Novelty (0-100): differentiation from existing skills
-   - Feasibility (0-100): technical implementability
-   - Trading Value (0-100): practical value for investors/traders
-   - Composite = 0.3 * Novelty + 0.3 * Feasibility + 0.4 * Trading Value
-4. Merge scored candidates into `logs/.skill_generation_backlog.yaml`
-
-## Output Format
-
-### raw_candidates.yaml
-
-```yaml
-generated_at_utc: "2026-03-08T06:00:00Z"
-period: {from: "2026-03-01", to: "2026-03-07"}
-projects_scanned: ["claude-trading-skills"]
-sessions_scanned: 12
-candidates:
-  - id: "raw_2026w10_001"
-    title: "Earnings Whispers Image Parser"
-    source_project: "claude-trading-skills"
-    evidence:
-      user_requests: ["Extract earnings dates from screenshot"]
-      pain_points: ["Manual image reading"]
-      frequency: 3
-    raw_description: "Parse Earnings Whispers screenshots to extract dates."
-    category: "data-extraction"
-```
-
-### Backlog (logs/.skill_generation_backlog.yaml)
-
-```yaml
-updated_at_utc: "2026-03-08T06:15:00Z"
-ideas:
-  - id: "idea_2026w10_001"
-    title: "Earnings Whispers Image Parser"
-    description: "Skill that parses Earnings Whispers screenshots..."
-    category: "data-extraction"
-    scores: {novelty: 75, feasibility: 60, trading_value: 80, composite: 73}
-    status: "pending"
-```
-
-## Resources
-
-- `references/idea_extraction_rubric.md` — Signal detection criteria and scoring rubric
-- `scripts/mine_session_logs.py` — Session log parser
-- `scripts/score_ideas.py` — Scorer and deduplicator
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

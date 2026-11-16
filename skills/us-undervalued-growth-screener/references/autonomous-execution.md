@@ -6,7 +6,7 @@ Make a minimal instruction sufficient for a complete screen. The operator suppli
 
 Never pause after an intermediate stage to ask for “continue.” Exit code `2` from a helper script is an internal continuation signal, not a user handoff.
 
-In Claude Code, the mandatory default is the local direct-FMP runner. Do not consume the listing universe through repeated MCP calls. Run `run_pipeline.py`, keep raw payloads in its cache/artifact directories, and read only the compact summary, audits, and selected candidate packets.
+In Codex, the mandatory default is the local direct-FMP runner. Do not consume the listing universe through repeated MCP calls. Run `run_pipeline.py`, keep raw payloads in its cache/artifact directories, and read only the compact summary, audits, and selected candidate packets.
 
 ## Runtime Identity
 

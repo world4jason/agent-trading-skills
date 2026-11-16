@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a Claude CLI prompt for designing a new skill from an idea specification.
+"""Build a Codex prompt for designing a new skill from an idea specification.
 
 Reads the idea JSON, embeds all three reference files, lists existing skills,
 and outputs a complete prompt to stdout.
@@ -57,7 +57,7 @@ def build_prompt(idea: dict, skill_name: str, refs: dict[str, str], existing: li
     for name, content in refs.items():
         ref_sections += f"\n\n--- BEGIN {name} ---\n{content}\n--- END {name} ---"
 
-    prompt = f"""Design and create a complete Claude skill named '{skill_name}'.
+    prompt = f"""Design and create a complete Codex skill named '{skill_name}'.
 
 ## Idea Specification
 
@@ -96,7 +96,7 @@ Ensure the skill scores well on all 5 quality categories (metadata, workflow, ex
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build a Claude CLI prompt for skill design")
+    parser = argparse.ArgumentParser(description="Build a Codex prompt for skill design")
     parser.add_argument("--idea-json", required=True, help="Path to idea JSON file")
     parser.add_argument("--skill-name", required=True, help="Normalized skill directory name")
     parser.add_argument("--project-root", default=".", help="Project root directory")

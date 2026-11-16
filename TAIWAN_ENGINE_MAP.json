@@ -1,0 +1,12 @@
+{
+  "vcp-screener/scripts/screen_vcp.py": "vcp",
+  "canslim-screener/scripts/screen_canslim.py": "canslim",
+  "dividend-growth-pullback-screener/scripts/screen_dividend_growth_rsi.py": "dividend-growth-pullback",
+  "value-dividend-screener/scripts/screen_dividend_stocks.py": "value-dividend",
+  "stockbee-momentum-burst-screener/scripts/screen_momentum_burst.py": "momentum-burst",
+  "stockbee-exhaustion-hammer-screener/scripts/screen_exhaustion_hammer.py": "exhaustion-hammer",
+  "parabolic-short-trade-planner/scripts/screen_parabolic.py": "parabolic",
+  "pead-screener/scripts/screen_pead.py": "pead",
+  "us-undervalued-growth-screener/scripts/screen_universe.py": "undervalued-growth",
+  "us-undervalued-growth-screener/scripts/run_pipeline.py": "undervalued-growth"
+}

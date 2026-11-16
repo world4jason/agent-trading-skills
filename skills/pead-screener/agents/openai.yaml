@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股財報後漂移"
+  short_description: "Taiwan stocks and ETFs: pead-screener"
+  default_prompt: "使用 $pead-screener，研究台股財報後漂移。"

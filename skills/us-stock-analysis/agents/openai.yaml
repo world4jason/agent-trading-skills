@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股公司與 ETF"
+  short_description: "Taiwan stocks and ETFs: us-stock-analysis"
+  default_prompt: "使用 $us-stock-analysis，研究台股公司與 ETF。"

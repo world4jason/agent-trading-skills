@@ -72,7 +72,7 @@ recommendations require other evidence and are unavailable in this mode.
 
 1. **Copy skill to Claude Skills directory:**
    ```bash
-   cp -r portfolio-manager ~/.claude/skills/
+   cp -r portfolio-manager ~/.codex/skills/
    ```
 
 2. **Restart Claude** to detect the skill

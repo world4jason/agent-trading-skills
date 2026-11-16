@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cot Contrarian Detector"
+  short_description: "Trading toolkit: Cot Contrarian Detector"
+  default_prompt: "Use $cot-contrarian-detector to help with my trading research request."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "製作台股突破交易計畫"
+  short_description: "Taiwan stocks and ETFs: breakout-trade-planner"
+  default_prompt: "使用 $breakout-trade-planner，製作台股突破交易計畫。"

@@ -42,7 +42,7 @@ Moved verbatim from `SKILL.md`.
 7. ✗ Never use production API keys with sensitive data access
 
 **Best Practice**:
-For Claude Code (CLI), always use environment variable:
+For Codex (CLI), always use environment variable:
 ```bash
 # Add to ~/.zshrc or ~/.bashrc
 export FMP_API_KEY="your-key-here"

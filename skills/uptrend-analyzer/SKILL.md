@@ -1,167 +1,23 @@
 ---
 name: uptrend-analyzer
-description: Analyzes market breadth using Monty's Uptrend Ratio Dashboard data to diagnose the current market environment. Generates a 0-100 composite score from 5 components (breadth, sector participation, rotation, momentum, historical context). Use when asking about market breadth, uptrend ratios, or whether the market environment supports equity exposure. No API key required.
+description: 計算台股上升趨勢參與度。明確定義均線與趨勢條件，再計算具足夠歷史的台股樣本占比；不載入美股 Uptrend Dashboard，也不冒稱與原分數可比。
+  適用於台灣上市、上櫃股票與 ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Uptrend Analyzer Skill
+# 計算台股上升趨勢參與度
 
-## Purpose
+明確定義均線與趨勢條件，再計算具足夠歷史的台股樣本占比；不載入美股 Uptrend Dashboard，也不冒稱與原分數可比。
 
-Diagnose market breadth health using Monty's Uptrend Ratio Dashboard, which tracks ~2,800 US stocks across 11 sectors. Generates a 0-100 composite score (higher = healthier) with exposure guidance.
+## 執行流程
 
-Unlike the Market Top Detector (API-based risk scorer), this skill uses free CSV data to assess "participation breadth" - whether the market's advance is broad or narrow.
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-breadth.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-## When to Use This Skill
+## 方法論資源
 
-**English:**
-- User asks "Is the market breadth healthy?" or "How broad is the rally?"
-- User wants to assess uptrend ratios across sectors
-- User asks about market participation or breadth conditions
-- User needs exposure guidance based on breadth analysis
-- User references Monty's Uptrend Dashboard or uptrend ratios
+- [uptrend_methodology.md](references/uptrend_methodology.md)
 
-**Japanese:**
-- 「市場のブレドスは健全？」「上昇の裾野は広い？」
-- セクター別のアップトレンド比率を確認したい
-- 相場参加率・ブレドス状況を診断したい
-- ブレドス分析に基づくエクスポージャーガイダンスが欲しい
-- Montyのアップトレンドダッシュボードについて質問
-
-## Prerequisites
-
-- **Python 3.9+** with the `requests` library (CSV parsing uses the stdlib `csv`/`io` modules)
-- **Internet connection** to fetch CSV data from GitHub (no API key required)
-- No paid API subscriptions needed
-
-## Difference from Market Top Detector
-
-| Aspect | Uptrend Analyzer | Market Top Detector |
-|--------|-----------------|-------------------|
-| Score Direction | Higher = healthier | Higher = riskier |
-| Data Source | Free GitHub CSV | FMP API (paid) |
-| Focus | Breadth participation | Top formation risk |
-| API Key | Not required | Required (FMP) |
-| Methodology | Monty Uptrend Ratios | O'Neil/Minervini/Monty |
-
----
-
-## Execution Workflow
-
-### Phase 1: Execute Python Script
-
-Run the analysis script (no API key needed):
-
-```bash
-python3 skills/uptrend-analyzer/scripts/uptrend_analyzer.py
-```
-
-The script will:
-1. Download CSV data from Monty's GitHub repository
-2. Calculate 5 component scores
-3. Generate composite score and reports
-
-### Phase 2: Present Results
-
-Present the generated Markdown report to the user, highlighting:
-- Composite score and zone classification
-- Exposure guidance (Full/Normal/Reduced/Defensive/Preservation)
-- Sector heatmap showing strongest and weakest sectors
-- Key momentum and rotation signals
-
----
-
-## 5-Component Scoring System
-
-| # | Component | Weight | Key Signal |
-|---|-----------|--------|------------|
-| 1 | Market Breadth (Overall) | **30%** | Ratio level + trend direction |
-| 2 | Sector Participation | **25%** | Uptrend sector count + ratio spread |
-| 3 | Sector Rotation | **15%** | Cyclical vs Defensive balance |
-| 4 | Momentum | **20%** | Slope direction + acceleration |
-| 5 | Historical Context | **10%** | Percentile rank in history |
-
-## Scoring Zones
-
-| Score | Zone | Exposure Guidance |
-|-------|------|-------------------|
-| 80-100 | Strong Bull | Full Exposure (100%) |
-| 60-79 | Bull | Normal Exposure (80-100%) |
-| 40-59 | Neutral | Reduced Exposure (60-80%) |
-| 20-39 | Cautious | Defensive (30-60%) |
-| 0-19 | Bear | Capital Preservation (0-30%) |
-
-### 7-Level Zone Detail
-
-Each scoring zone is further divided into sub-zones for finer-grained assessment:
-
-| Score | Zone Detail | Color |
-|-------|-------------|-------|
-| 80-100 | Strong Bull | Green |
-| 70-79 | Bull-Upper | Light Green |
-| 60-69 | Bull-Lower | Light Green |
-| 40-59 | Neutral | Yellow |
-| 30-39 | Cautious-Upper | Orange |
-| 20-29 | Cautious-Lower | Orange |
-| 0-19 | Bear | Red |
-
-### Warning System
-
-Active warnings trigger exposure penalties that tighten guidance even when the composite score is high:
-
-| Warning | Condition | Penalty |
-|---------|-----------|---------|
-| **Late Cycle** | Commodity avg > both Cyclical and Defensive | -5 |
-| **High Spread** | Max-min sector ratio spread > 40pp | -3 |
-| **Divergence** | Intra-group std > 8pp, spread > 20pp, or trend dissenters | -3 |
-
-Penalties stack (max -10) + multi-warning discount (+1 when ≥2 active). Applied after composite scoring.
-
-### Momentum Smoothing
-
-Slope values are smoothed using EMA(3) (Exponential Moving Average, span=3) before scoring. Acceleration is calculated by comparing the recent 10-point average vs prior 10-point average of smoothed slopes (10v10 window), with fallback to 5v5 when fewer than 20 data points are available.
-
-### Historical Confidence Indicator
-
-The Historical Context component includes a confidence assessment based on:
-- **Sample size:** Number of historical data points available
-- **Regime coverage:** Proportion of distinct market regimes (bull/bear/neutral) observed
-- **Recency:** How recent the latest data point is
-
-Confidence levels: High, Medium, Low.
-
----
-
-## API Requirements
-
-**Required:** None (uses free GitHub CSV data)
-
-## Output Files
-
-- JSON: `uptrend_analysis_YYYY-MM-DD_HHMMSS.json`
-- Markdown: `uptrend_analysis_YYYY-MM-DD_HHMMSS.md`
-
-## Reference Documents
-
-### `references/uptrend_methodology.md`
-- Uptrend Ratio definition and thresholds
-- 5-component scoring methodology
-- Sector classification (Cyclical/Defensive/Commodity)
-- Historical calibration notes
-
-### When to Load References
-- **First use:** Load `uptrend_methodology.md` for full framework understanding
-- **Regular execution:** References not needed - script handles scoring
-
-## Same-run provenance
-
-Pass `--run-id daily-20261017-unique` to both required market-regime-daily
-producers. Without it each producer generates its own unique ID. JSON includes
-schema 1.0 `data_provenance` with actual primary timeseries business date,
-UTC retrieval time, source and run ID. Unknown adjustment, point-in-time,
-survivorship and corporate-action flags are false. Auxiliary summary dates
-are unverified; this does not certify the freshness of every composite input.
-Missing or malformed primary dates stop report generation.
-
-Pass the exact JSON paths printed by these invocations to Exposure Coach's
-`--require-provenance --run-id … --as-of …` mode. Run IDs are caller-provided
-consistency markers, not authenticity or point-in-time proof.
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

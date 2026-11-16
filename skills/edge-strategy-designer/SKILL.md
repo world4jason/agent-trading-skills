@@ -1,66 +1,23 @@
 ---
 name: edge-strategy-designer
-description: Convert abstract edge concepts into strategy draft variants and optional exportable ticket YAMLs for edge-candidate-agent export/validation.
+description: 設計可驗證的台股策略規則。將假說轉為入場、退場、持有期和排除條件，明列漲跌停、停牌、成本與整數股約束，不自動調參擴張策略。 適用於台灣上市、上櫃股票與
+  ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Edge Strategy Designer
+# 設計可驗證的台股策略規則
 
-## Overview
+將假說轉為入場、退場、持有期和排除條件，明列漲跌停、停牌、成本與整數股約束，不自動調參擴張策略。
 
-Translate concept-level hypotheses into concrete strategy draft specs.
-This skill sits after concept synthesis and before pipeline export validation.
+## 執行流程
 
-## When to Use
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-research.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-- You have `edge_concepts.yaml` and need strategy candidates.
-- You want multiple variants (core/conservative/research-probe) per concept.
-- You want optional exportable ticket files for interface v1 families.
+## 方法論資源
 
-## Prerequisites
+- [strategy_draft_schema.md](references/strategy_draft_schema.md)
 
-- Python 3.9+
-- `PyYAML`
-- `edge_concepts.yaml` produced by concept synthesis
-
-## Output
-
-- `strategy_drafts/*.yaml`
-- `strategy_drafts/run_manifest.json`
-- Optional `exportable_tickets/*.yaml` for downstream `export_candidate.py`
-
-## Workflow
-
-1. Load `edge_concepts.yaml`.
-2. Choose risk profile (`conservative`, `balanced`, `aggressive`).
-3. Generate per-concept variants with hypothesis-type exit calibration.
-4. Apply `HYPOTHESIS_EXIT_OVERRIDES` to adjust stop-loss, reward-to-risk, time-stop, and trailing-stop per hypothesis type (breakout, earnings_drift, panic_reversal, etc.).
-5. Clamp reward-to-risk at `RR_FLOOR=1.5` to prevent C5 review failures.
-6. Export v1-ready ticket YAML when applicable.
-7. Hand off exportable tickets to `skills/edge-candidate-agent/scripts/export_candidate.py`.
-
-## Quick Commands
-
-Generate drafts only:
-
-```bash
-python3 skills/edge-strategy-designer/scripts/design_strategy_drafts.py \
-  --concepts /tmp/edge-concepts/edge_concepts.yaml \
-  --output-dir /tmp/strategy-drafts \
-  --risk-profile balanced
-```
-
-Generate drafts + exportable tickets:
-
-```bash
-python3 skills/edge-strategy-designer/scripts/design_strategy_drafts.py \
-  --concepts /tmp/edge-concepts/edge_concepts.yaml \
-  --output-dir /tmp/strategy-drafts \
-  --exportable-tickets-dir /tmp/exportable-tickets \
-  --risk-profile conservative
-```
-
-## Resources
-
-- `skills/edge-strategy-designer/scripts/design_strategy_drafts.py`
-- `references/strategy_draft_schema.md`
-- `skills/edge-candidate-agent/scripts/export_candidate.py`
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

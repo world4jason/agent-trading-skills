@@ -1,0 +1,4 @@
+interface:
+  display_name: "辨識台股下跌後槌子線"
+  short_description: "Taiwan stocks and ETFs: stockbee-exhaustion-hammer-screener"
+  default_prompt: "使用 $stockbee-exhaustion-hammer-screener，辨識台股下跌後槌子線。"

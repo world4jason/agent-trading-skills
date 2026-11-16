@@ -14,6 +14,15 @@ Output:
     - Markdown: canslim_screener_YYYY-MM-DD_HHMMSS.md
 """
 
+# The executable entrypoint is Taiwan-native; imported upstream calculators remain available.
+if __name__ == "__main__":
+    import sys as _tw_sys
+    from pathlib import Path as _TwPath
+    _tw_sys.path.insert(0, str(_TwPath(__file__).resolve().parents[3] / "scripts"))
+    from taiwan_screen import main as _taiwan_main
+    raise SystemExit(_taiwan_main(default_strategy="canslim"))
+
+
 import argparse
 import os
 import sys

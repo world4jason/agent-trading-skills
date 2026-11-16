@@ -1,6 +1,6 @@
 # Idea Extraction Rubric
 
-Criteria and scoring framework for mining skill ideas from Claude Code session logs.
+Criteria and scoring framework for mining skill ideas from Codex session logs.
 
 ## Signal Detection Rules
 
@@ -60,7 +60,7 @@ Detect user messages that did not result in tool actions:
 When invoking Claude CLI for idea abstraction, use this prompt structure:
 
 ```
-You are analyzing Claude Code session logs to extract skill idea candidates
+You are analyzing Codex session logs to extract skill idea candidates
 for a trading/investing skill repository.
 
 Given the following signals detected from recent sessions:
@@ -114,7 +114,7 @@ Rules:
 
 | Score Range | Criteria |
 |------------|---------|
-| 80-100 | Can be built with existing tools (WebSearch, Read, Bash); no paid API required |
+| 80-100 | Can be built with existing tools (web search, Read, Bash); no paid API required |
 | 60-79 | Requires existing paid API (FMP, FINVIZ) already in the project |
 | 40-59 | Requires new API integration or complex parsing logic |
 | 20-39 | Requires significant infrastructure (databases, real-time feeds) |

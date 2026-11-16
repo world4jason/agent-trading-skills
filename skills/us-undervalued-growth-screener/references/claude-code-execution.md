@@ -1,8 +1,8 @@
-# Claude Code Direct-FMP Execution — v3.6
+# Codex Direct-FMP Execution — v3.6
 
 ## Purpose
 
-The v3.6 path prevents bulk FMP responses from consuming the language-model context. Claude Code launches one local Python process. Python performs provider retrieval, persistent caching, listing enumeration, FY1 normalization, liquidity calculation, four-lane discovery, and deterministic broad screening. Claude reads only the compact summary and selected-company evidence packets.
+The v3.6 path prevents bulk FMP responses from consuming the language-model context. Codex launches one local Python process. Python performs provider retrieval, persistent caching, listing enumeration, FY1 normalization, liquidity calculation, four-lane discovery, and deterministic broad screening. Claude reads only the compact summary and selected-company evidence packets.
 
 The underwriting and final-ranking contract remains schema 3 / contract 3.5.
 

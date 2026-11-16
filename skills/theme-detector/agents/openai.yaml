@@ -1,0 +1,4 @@
+interface:
+  display_name: "辨識台股產業與投資主題"
+  short_description: "Taiwan stocks and ETFs: theme-detector"
+  default_prompt: "使用 $theme-detector，辨識台股產業與投資主題。"

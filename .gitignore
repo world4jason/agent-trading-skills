@@ -61,3 +61,12 @@ htmlcov/
 .coverage
 /_site/
 # .secrets.baseline is tracked — needed by detect-secrets pre-commit hook
+
+# Local installation state and environment-specific validation history
+/TAIWAN_INSTALL_BACKUP.json
+/CODEX_PORT.json
+/UPSTREAM_CODEX_PORT.json
+/UPSTREAM_CODEX_VALIDATION.json
+/TAIWAN_VALIDATION.json
+.env
+/.venv

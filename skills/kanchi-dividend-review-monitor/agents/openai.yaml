@@ -1,3 +1,4 @@
 interface:
-  display_name: "Kanchi Dividend Review Monitor"
-  short_description: "Help with Kanchi Dividend Review Monitor tasks"
+  display_name: "追蹤台股股利研究清單"
+  short_description: "Taiwan stocks and ETFs: kanchi-dividend-review-monitor"
+  default_prompt: "使用 $kanchi-dividend-review-monitor，追蹤台股股利研究清單。"

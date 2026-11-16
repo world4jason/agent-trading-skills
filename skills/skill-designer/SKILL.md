@@ -1,86 +1,25 @@
 ---
 name: skill-designer
-description: Design new Claude skills from structured idea specifications. Use when the skill auto-generation pipeline needs to produce a Claude CLI prompt that creates a complete skill directory (SKILL.md, references, scripts, tests) following repository conventions.
+description: 設計台股研究 skills。用現有 Codex skill-creator 與本版資料契約建立必要資源與測試；不呼叫 Claude CLI，不新增使用者未授權的交易功能。
+  適用於台灣上市、上櫃股票與 ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Skill Designer
+# 設計台股研究 skills
 
-## Overview
+用現有 Codex skill-creator 與本版資料契約建立必要資源與測試；不呼叫 Claude CLI，不新增使用者未授權的交易功能。
 
-Generate a comprehensive Claude CLI prompt from a structured skill idea
-specification. The prompt instructs Claude to create a complete skill directory
-following repository conventions: SKILL.md with YAML frontmatter, reference
-documents, helper scripts, and test scaffolding.
+## 執行流程
 
-## When to Use
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-meta.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-- The skill auto-generation pipeline selects an idea from the backlog and needs
-  a design prompt for `claude -p`
-- A developer wants to bootstrap a new skill from a JSON idea specification
-- Quality review of generated skills requires awareness of the scoring rubric
+## 方法論資源
 
-## Prerequisites
+- [quality-checklist.md](references/quality-checklist.md)
+- [skill-structure-guide.md](references/skill-structure-guide.md)
+- [skill-template.md](references/skill-template.md)
 
-- Python 3.9+
-- No external API keys required
-- Reference files must exist under `references/`
-
-## Workflow
-
-### Step 1: Prepare Idea Specification
-
-Accept a JSON file (`--idea-json`) containing:
-- `title`: Human-readable idea name
-- `description`: What the skill does
-- `category`: Skill category (e.g., trading-analysis, developer-tooling)
-
-Accept a normalized skill name (`--skill-name`) that will be used as the
-directory name and YAML frontmatter `name:` field.
-
-### Step 2: Build Design Prompt
-
-Run the prompt builder:
-
-```bash
-python3 skills/skill-designer/scripts/build_design_prompt.py \
-  --idea-json /tmp/idea.json \
-  --skill-name "my-new-skill" \
-  --project-root .
-```
-
-The script:
-1. Loads the idea JSON
-2. Reads all three reference files (structure guide, quality checklist, template)
-3. Lists existing skills (up to 20) to prevent duplication
-4. Outputs a complete prompt to stdout
-
-### Step 3: Feed Prompt to Claude CLI
-
-The calling pipeline pipes the prompt into `claude -p`:
-
-```bash
-python3 skills/skill-designer/scripts/build_design_prompt.py \
-  --idea-json /tmp/idea.json \
-  --skill-name "my-new-skill" \
-  --project-root . \
-| claude -p --allowedTools Read,Edit,Write,Glob,Grep
-```
-
-### Step 4: Validate Output
-
-After Claude creates the skill, verify:
-- `skills/<skill-name>/SKILL.md` exists with correct frontmatter
-- Directory structure follows conventions
-- Score with dual-axis-skill-reviewer meets threshold
-
-## Output Format
-
-The script outputs a plain-text prompt to stdout. Exit code 0 on success,
-1 if required reference files are missing.
-
-## Resources
-
-- `references/skill-structure-guide.md` -- Directory structure, SKILL.md format, naming conventions
-- `references/quality-checklist.md` -- Dual-axis reviewer 5-category checklist (100 points)
-- `references/skill-template.md` -- SKILL.md template with YAML frontmatter and standard sections
-- `scripts/build_design_prompt.py` -- Prompt builder script (CLI interface)
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

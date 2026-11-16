@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股事件轉折"
+  short_description: "Taiwan stocks and ETFs: stockbee-episodic-pivot-analyzer"
+  default_prompt: "使用 $stockbee-episodic-pivot-analyzer，研究台股事件轉折。"

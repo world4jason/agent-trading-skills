@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股合理價格成長候選"
+  short_description: "Taiwan stocks and ETFs: us-undervalued-growth-screener"
+  default_prompt: "使用 $us-undervalued-growth-screener，研究台股合理價格成長候選。"

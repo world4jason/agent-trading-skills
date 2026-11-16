@@ -1,0 +1,4 @@
+interface:
+  display_name: "尋找台股股利成長與回檔候選"
+  short_description: "Taiwan stocks and ETFs: dividend-growth-pullback-screener"
+  default_prompt: "使用 $dividend-growth-pullback-screener，尋找台股股利成長與回檔候選。"

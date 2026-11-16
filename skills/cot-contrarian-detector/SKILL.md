@@ -3,6 +3,11 @@ name: cot-contrarian-detector
 description: Detect crowded speculative positioning in CFTC futures markets (COT report analysis) to find contrarian setups using Jason Shapiro's methodology. Screens large-speculator ("non-commercial") net positioning across 65 futures markets (indices, rates, FX, metals, energy, crypto) via the FMP Commitment of Traders API, computes a 3-year and 26-week COT Index per market, and classifies extremes as CROWDED_LONG / CROWDED_SHORT. Use when the user asks about COT report analysis, crowded positioning, "who is trapped", speculative positioning extremes, contrarian futures setups, or wants to run Jason Shapiro-style analysis. This skill automates crowding DETECTION only (step 1 of 5) — it does not generate trade signals by itself.
 ---
 
+## Codex execution
+
+Before running this skill, read [Codex runtime](/Users/world4jason/.codex/skill-bundles/codex-trading-skills/CODEX_RUNTIME.md). It defines this installation's interpreter, resource paths, available-tool mapping, and external prerequisites.
+
+
 # COT Contrarian Detector
 
 ## Overview
@@ -94,7 +99,7 @@ load `references/shapiro-methodology.md` and walk through the remaining
 steps — these are **not automated**:
 
 1. ~~Crowding detection~~ (done — this skill)
-2. **News failure** — use WebSearch to check whether recent news favorable to
+2. **News failure** — use web search to check whether recent news favorable to
    the crowd's direction failed to move price the way the crowd would expect
    (e.g. crowded-long market doesn't rally on bullish news). This is the core
    edge and the most important manual confirmation.

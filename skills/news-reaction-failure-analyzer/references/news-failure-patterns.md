@@ -7,7 +7,7 @@ Step 2 of Jason Shapiro's COT contrarian process (see
 5-step process) is the core edge: once a market is crowded, check whether
 it FAILED to react to news that should have rewarded the crowd. This
 document covers what qualifies as a relevant event, how to curate an
-events JSON via WebSearch, and the statistical rationale behind the
+events JSON via web search, and the statistical rationale behind the
 verdict this skill computes.
 
 ## What Qualifies as a Relevant Event
@@ -62,7 +62,7 @@ quality alongside the reaction data.
 
 ## Events JSON Curation Guide
 
-WebSearch news in the CLI's `--window-days` window (default 10 days
+web search news in the CLI's `--window-days` window (default 10 days
 before `--as-of`). For each candidate event:
 
 1. Confirm it's genuinely dateable (a specific release date/time, not a
@@ -75,7 +75,7 @@ before `--as-of`). For each candidate event:
    CLI (dropped with reason `unparsable_event_time`) rather than guessing
    at an implicit timezone
 4. Cite the real `source_url` and `source_tier` — **never fabricate a URL
-   or an event**. If WebSearch can't find a genuinely relevant event in
+   or an event**. If web search can't find a genuinely relevant event in
    the window, that's a valid (if less useful) outcome — don't pad the
    list to hit `--min-events`
 

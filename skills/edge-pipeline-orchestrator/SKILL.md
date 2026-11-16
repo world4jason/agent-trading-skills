@@ -1,135 +1,24 @@
 ---
 name: edge-pipeline-orchestrator
-description: Orchestrate the full edge research pipeline from candidate detection through strategy design, review, revision, and export. Use when coordinating multi-stage edge research workflows end-to-end.
+description: 串接台股策略研究流程。依台股 workflow manifests 串接資料、假說、策略、檢查與修訂；每步確認實際產物，不能執行舊版 FMP
+  自動管線。 適用於台灣上市、上櫃股票與 ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Edge Pipeline Orchestrator
+# 串接台股策略研究流程
 
-Coordinate all edge research stages into a single automated pipeline run.
+依台股 workflow manifests 串接資料、假說、策略、檢查與修訂；每步確認實際產物，不能執行舊版 FMP 自動管線。
 
-## When to Use
+## 執行流程
 
-- Run the full edge pipeline from tickets (or OHLCV) to exported strategies
-- Resume a partially completed pipeline from the drafts stage
-- Review and revise existing strategy drafts with feedback loop
-- Dry-run the pipeline to preview results without exporting
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-research.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-## Prerequisites
+## 方法論資源
 
-- **API keys:** None required. The orchestrator runs the edge pipeline subskills through subprocess calls.
-- **Sibling skills:** The orchestrator resolves `skills/edge-candidate-agent`, `skills/edge-hint-extractor`, `skills/edge-concept-synthesizer`, `skills/edge-strategy-designer` and `skills/edge-strategy-reviewer` by repository path. Install or check out all of them together; a standalone install of this skill alone will not run.
-- **Python:** 3.9+ with `PyYAML>=6.0` (see `requirements.txt`).
-- **Inputs:** A tickets directory, an OHLCV CSV for `--from-ohlcv`, or an existing drafts directory, depending on the mode shown under CLI Usage.
+- [pipeline_flow.md](references/pipeline_flow.md)
+- [revision_loop_rules.md](references/revision_loop_rules.md)
 
-## Workflow
-
-1. Load pipeline configuration from CLI arguments
-2. Run auto_detect stage if --from-ohlcv is provided (generates tickets from raw OHLCV data)
-3. Run hints stage to extract edge hints from market summary and anomalies
-4. Run concepts stage to synthesize abstract edge concepts from tickets and hints
-5. Run drafts stage to design strategy drafts from concepts
-6. Run review-revision feedback loop:
-   - Review all drafts (max 2 iterations)
-   - PASS verdicts accumulated; REJECT verdicts accumulated
-   - REVISE verdicts trigger apply_revisions and re-review
-   - Remaining REVISE after max iterations downgraded to research_probe
-7. Export eligible drafts (PASS + export_ready_v1 + exportable entry_family)
-8. Write pipeline_run_manifest.json with full execution trace
-
-## CLI Usage
-
-```bash
-# Full pipeline from tickets
-python3 scripts/orchestrate_edge_pipeline.py \
-  --tickets-dir path/to/tickets/ \
-  --output-dir reports/edge_pipeline/
-
-# Full pipeline from OHLCV
-python3 scripts/orchestrate_edge_pipeline.py \
-  --from-ohlcv path/to/ohlcv.csv \
-  --output-dir reports/edge_pipeline/
-
-# Resume from drafts stage
-python3 scripts/orchestrate_edge_pipeline.py \
-  --resume-from drafts \
-  --drafts-dir path/to/drafts/ \
-  --output-dir reports/edge_pipeline/
-
-# Review-only mode
-python3 scripts/orchestrate_edge_pipeline.py \
-  --review-only \
-  --drafts-dir path/to/drafts/ \
-  --output-dir reports/edge_pipeline/
-
-# Dry run (no export)
-python3 scripts/orchestrate_edge_pipeline.py \
-  --tickets-dir path/to/tickets/ \
-  --output-dir reports/edge_pipeline/ \
-  --dry-run
-```
-
-## Output
-
-All artifacts are written to `--output-dir`:
-
-```
-output-dir/
-├── pipeline_run_manifest.json
-├── tickets/          (from auto_detect)
-├── hints/hints.yaml  (from hints)
-├── concepts/edge_concepts.yaml
-├── drafts/*.yaml
-├── exportable_tickets/*.yaml
-├── reviews_iter_0/*.yaml
-├── reviews_iter_1/*.yaml  (if needed)
-└── strategies/<candidate_id>/
-    ├── strategy.yaml
-    └── metadata.json
-```
-
-## Claude Code LLM-Augmented Workflow
-
-Run the LLM-augmented pipeline entirely within Claude Code:
-
-1. Run auto_detect to produce `market_summary.json` + `anomalies.json`
-2. Claude Code analyzes data and generates edge hints
-3. Save hints to a YAML file:
-
-```yaml
-- title: Sector rotation into industrials
-  observation: Tech underperforming while industrials show relative strength
-  symbols: [CAT, DE, GE]
-  regime_bias: Neutral
-  mechanism_tag: flow
-  preferred_entry_family: pivot_breakout
-  hypothesis_type: sector_x_stock
-```
-
-4. Run orchestrator with `--llm-ideas-file` and `--promote-hints`:
-
-```bash
-python3 scripts/orchestrate_edge_pipeline.py \
-  --tickets-dir path/to/tickets/ \
-  --llm-ideas-file llm_hints.yaml \
-  --promote-hints \
-  --as-of 2026-02-28 \
-  --max-synthetic-ratio 1.5 \
-  --strict-export \
-  --output-dir reports/edge_pipeline/
-```
-
-### Optional Flags
-
-- `--as-of YYYY-MM-DD` — forwarded to hints stage for date filtering
-- `--strict-export` — export-eligible drafts with any warn finding get REVISE instead of PASS
-- `--max-synthetic-ratio N` — cap synthetic tickets to N × real ticket count (floor: 3)
-- `--overlap-threshold F` — condition overlap threshold for concept deduplication (default: 0.75)
-- `--no-dedup` — disable concept deduplication
-
-Note: `--llm-ideas-file` and `--promote-hints` are effective only during full pipeline runs.
-`--resume-from drafts` and `--review-only` skip hints/concepts stages, so these flags are ignored.
-
-## Resources
-
-- `references/pipeline_flow.md` — Pipeline stages, data contracts, and architecture
-- `references/revision_loop_rules.md` — Review-revision feedback loop rules and heuristics
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

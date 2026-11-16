@@ -1,0 +1,4 @@
+interface:
+  display_name: "整理台股每週交易績效"
+  short_description: "Taiwan stocks and ETFs: weekly-performance-digest"
+  default_prompt: "使用 $weekly-performance-digest，整理台股每週交易績效。"

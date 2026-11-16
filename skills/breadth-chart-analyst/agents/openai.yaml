@@ -1,0 +1,4 @@
+interface:
+  display_name: "判讀台股市場廣度圖"
+  short_description: "Taiwan stocks and ETFs: breadth-chart-analyst"
+  default_prompt: "使用 $breadth-chart-analyst，判讀台股市場廣度圖。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "分析台股三大法人買賣超"
+  short_description: "Taiwan stocks and ETFs: institutional-flow-tracker"
+  default_prompt: "使用 $institutional-flow-tracker，分析台股三大法人買賣超。"

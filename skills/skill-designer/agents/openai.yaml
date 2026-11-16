@@ -1,0 +1,4 @@
+interface:
+  display_name: "設計台股研究 skills"
+  short_description: "Taiwan stocks and ETFs: skill-designer"
+  default_prompt: "使用 $skill-designer，設計台股研究 skills。"

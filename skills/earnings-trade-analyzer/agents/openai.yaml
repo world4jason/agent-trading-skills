@@ -1,0 +1,4 @@
+interface:
+  display_name: "分析台股財報後價格反應"
+  short_description: "Taiwan stocks and ETFs: earnings-trade-analyzer"
+  default_prompt: "使用 $earnings-trade-analyzer，分析台股財報後價格反應。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股急漲反轉風險"
+  short_description: "Taiwan stocks and ETFs: parabolic-short-trade-planner"
+  default_prompt: "使用 $parabolic-short-trade-planner，研究台股急漲反轉風險。"

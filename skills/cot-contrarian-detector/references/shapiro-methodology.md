@@ -44,7 +44,7 @@ common convention in COT-index literature and crowdedmarketreport.com's
 public methodology — long enough to span multiple full cycles, short enough
 to stay regime-relevant.
 
-### Step 2: News Failure (MANUAL — Claude guides via WebSearch)
+### Step 2: News Failure (MANUAL — Claude guides via web search)
 
 This is the core of Shapiro's edge and the step most traders skip. Once a
 market is flagged as crowded, check whether recent news that *should* have
@@ -63,7 +63,7 @@ textbook bullish catalysts — and the index barely budges, or sells off into
 the news. That non-reaction is the tell: everyone who was going to buy on
 good news already has.
 
-**How to check:** Use WebSearch for the market's major news catalysts over
+**How to check:** Use web search for the market's major news catalysts over
 the trailing 1-2 weeks (economic releases, central bank decisions, earnings
 for equity-index futures, OPEC/inventory data for energy, etc.), then compare
 the news direction to the actual price reaction on that day/week. A
@@ -111,7 +111,7 @@ reports are published.
 | Step | Automated? | How |
 |---|---|---|
 | 1. Crowding detection | Yes | `scripts/screen_cot_crowding.py` computes COT Index per market and classifies CROWDED_LONG/SHORT/NEUTRAL |
-| 2. News failure | No | Claude uses WebSearch on the flagged market's recent catalysts and compares to price reaction |
+| 2. News failure | No | Codex uses web search on the flagged market's recent catalysts and compares to price reaction |
 | 3. Price-action confirmation | No | Claude reads the weekly chart (via `technical-analyst` skill or user-provided chart) for a reversal signal |
 | 4. Entry | No | Claude sizes via `position-sizer`, places stop at the crowd's swing extreme |
 | 5. Exit | No | Claude monitors subsequent weekly COT releases for normalization, or the stop |

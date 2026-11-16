@@ -1,0 +1,4 @@
+interface:
+  display_name: "建立台股型態樣本簿"
+  short_description: "Taiwan stocks and ETFs: stockbee-setup-fluency-trainer"
+  default_prompt: "使用 $stockbee-setup-fluency-trainer，建立台股型態樣本簿。"

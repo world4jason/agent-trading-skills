@@ -3,6 +3,11 @@ name: futures-position-sizer
 description: Calculate contract-based futures position sizes from a direction, entry, and stop-loss, using verified per-symbol contract specs (multiplier, tick size, tick value). Use when the user asks how many futures contracts to trade, wants to size a futures position (ES, NQ, ZB, GC, CL, 6E/E6, VX, BT, ...), or is handing off a contrarian-setup-gate READY_FOR_PLAN direction/invalidation_level for sizing. Pure, offline calculation -- no API keys, no network.
 ---
 
+## Codex execution
+
+Before running this skill, read [Codex runtime](/Users/world4jason/.codex/skill-bundles/codex-trading-skills/CODEX_RUNTIME.md). It defines this installation's interpreter, resource paths, available-tool mapping, and external prerequisites.
+
+
 # Futures Position Sizer
 
 ## Overview

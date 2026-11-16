@@ -1,6 +1,6 @@
 # Review Regression Matrix — v3.6
 
-The first section records inherited contract-3.5 controls; the final section covers the v3.6 Claude Code acquisition architecture.
+The first section records inherited contract-3.5 controls; the final section covers the v3.6 Codex acquisition architecture.
 
 | Observed failure | Prevention | Regression/release check |
 |---|---|---|
@@ -37,7 +37,7 @@ The first section records inherited contract-3.5 controls; the final section cov
 | Final ZIP contained only summaries, not audit evidence | Prepublication audit plus deterministic complete-run bundle | bundle completeness test |
 | Final prose asked the user to continue | Prepublication prose audit rejects unfinished-run language | continue-language rejection test |
 
-## v3.6 Claude Code direct-FMP regressions
+## v3.6 Codex direct-FMP regressions
 
 | Observed failure | v3.6 prevention | Regression/release check |
 |---|---|---|
@@ -48,4 +48,4 @@ The first section records inherited contract-3.5 controls; the final section cov
 | Per-symbol liquidity work was allocated before economic relevance was known | Bulk EOD first; fallback exact-liquidity targets are chosen round-robin from the four GARP lanes | direct-pipeline lane-target test |
 | Overlapping core/high-growth symbols made the provider-pool audit report too few represented lanes | Lane coverage is calculated from final candidate memberships, not only the insertion loop | overlapping-lane provider-pool test |
 | Full FMP packets still burdened the model after discovery | Full payloads remain under `provider/candidate-data`; projected packets contain only underwriting-relevant fields and artifact paths | candidate-packet size/content review |
-| Claude stopped and requested another user turn | `NEXT_ACTION.json` sets `user_confirmation_required=false`; Claude Code command forbids “Continue” handoff | command contract and prepublish phrase gate |
+| Claude stopped and requested another user turn | `NEXT_ACTION.json` sets `user_confirmation_required=false`; Codex command forbids “Continue” handoff | command contract and prepublish phrase gate |

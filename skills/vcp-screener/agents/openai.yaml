@@ -1,0 +1,4 @@
+interface:
+  display_name: "辨識台股 VCP 波動收斂"
+  short_description: "Taiwan stocks and ETFs: vcp-screener"
+  default_prompt: "使用 $vcp-screener，辨識台股 VCP 波動收斂。"

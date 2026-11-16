@@ -1,0 +1,4 @@
+interface:
+  display_name: "整合台股多策略研究訊號"
+  short_description: "Taiwan stocks and ETFs: edge-signal-aggregator"
+  default_prompt: "使用 $edge-signal-aggregator，整合台股多策略研究訊號。"

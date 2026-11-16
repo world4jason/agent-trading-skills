@@ -1,0 +1,4 @@
+interface:
+  display_name: "評估台股總經環境"
+  short_description: "Taiwan stocks and ETFs: macro-regime-detector"
+  default_prompt: "使用 $macro-regime-detector，評估台股總經環境。"

@@ -15,7 +15,7 @@ If environment variable is set, proceed to Step 4.
 
 #### 3.2 Prompt User for API Key (Desktop/Web)
 
-If environment variable not found, use AskUserQuestion tool:
+If environment variable not found, use a user clarification tool:
 
 **Question Configuration**:
 ```

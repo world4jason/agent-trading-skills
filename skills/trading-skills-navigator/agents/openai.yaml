@@ -1,0 +1,4 @@
+interface:
+  display_name: "台股研究流程導覽"
+  short_description: "Find Taiwan stock and ETF research workflows"
+  default_prompt: "使用 $trading-skills-navigator，幫我找適合的台股研究流程。"

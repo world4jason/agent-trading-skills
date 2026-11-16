@@ -1,0 +1,4 @@
+interface:
+  display_name: "回測台股現股與 ETF 規則"
+  short_description: "Taiwan stocks and ETFs: manifoldbt-backtester"
+  default_prompt: "使用 $manifoldbt-backtester，回測台股現股與 ETF 規則。"

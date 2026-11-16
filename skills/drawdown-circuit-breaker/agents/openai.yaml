@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢查台股帳戶回撤限制"
+  short_description: "Taiwan stocks and ETFs: drawdown-circuit-breaker"
+  default_prompt: "使用 $drawdown-circuit-breaker，檢查台股帳戶回撤限制。"

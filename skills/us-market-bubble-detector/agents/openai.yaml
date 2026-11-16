@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢視台股估值與投機風險"
+  short_description: "Taiwan stocks and ETFs: us-market-bubble-detector"
+  default_prompt: "使用 $us-market-bubble-detector，檢視台股估值與投機風險。"

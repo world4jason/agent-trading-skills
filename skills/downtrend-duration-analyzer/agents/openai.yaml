@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股歷史回檔期間"
+  short_description: "Taiwan stocks and ETFs: downtrend-duration-analyzer"
+  default_prompt: "使用 $downtrend-duration-analyzer，研究台股歷史回檔期間。"

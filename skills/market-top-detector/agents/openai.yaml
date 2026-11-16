@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢查台股高檔風險"
+  short_description: "Taiwan stocks and ETFs: market-top-detector"
+  default_prompt: "使用 $market-top-detector，檢查台股高檔風險。"

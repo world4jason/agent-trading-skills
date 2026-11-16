@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢視台股策略研究是否停滯"
+  short_description: "Taiwan stocks and ETFs: strategy-pivot-designer"
+  default_prompt: "使用 $strategy-pivot-designer，檢視台股策略研究是否停滯。"

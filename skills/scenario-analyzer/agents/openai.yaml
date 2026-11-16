@@ -1,0 +1,4 @@
+interface:
+  display_name: "建立台股研究情境"
+  short_description: "Taiwan stocks and ETFs: scenario-analyzer"
+  default_prompt: "使用 $scenario-analyzer，建立台股研究情境。"

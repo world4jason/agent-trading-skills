@@ -1,0 +1,4 @@
+interface:
+  display_name: "分析台股與 ETF 技術走勢"
+  short_description: "Taiwan stocks and ETFs: technical-analyst"
+  default_prompt: "使用 $technical-analyst，分析台股與 ETF 技術走勢。"

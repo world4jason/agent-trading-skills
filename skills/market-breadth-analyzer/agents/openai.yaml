@@ -1,0 +1,4 @@
+interface:
+  display_name: "計算台股市場廣度"
+  short_description: "Taiwan stocks and ETFs: market-breadth-analyzer"
+  default_prompt: "使用 $market-breadth-analyzer，計算台股市場廣度。"

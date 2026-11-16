@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crypto Regime Analyzer"
+  short_description: "Trading toolkit: Crypto Regime Analyzer"
+  default_prompt: "Use $crypto-regime-analyzer to help with my trading research request."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢查台股交易前紀律"
+  short_description: "Taiwan stocks and ETFs: pre-trade-discipline-gate"
+  default_prompt: "使用 $pre-trade-discipline-gate，檢查台股交易前紀律。"

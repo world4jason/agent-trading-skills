@@ -1,117 +1,24 @@
 ---
 name: edge-strategy-reviewer
-description: >
-  Critically review strategy drafts from edge-strategy-designer for edge
-  plausibility, overfitting risk, sample size adequacy, and execution realism.
-  Use when strategy_drafts/*.yaml exists and needs quality gate before pipeline
-  export. Outputs PASS/REVISE/REJECT verdicts with confidence scores.
+description: 審查台股策略設計。檢查前視偏誤、資料可得性、樣本外測試與交易可行性；區分阻擋問題與可選改善，不重寫使用者的策略。 適用於台灣上市、上櫃股票與
+  ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Edge Strategy Reviewer
+# 審查台股策略設計
 
-Deterministic quality gate for strategy drafts produced by `edge-strategy-designer`.
+檢查前視偏誤、資料可得性、樣本外測試與交易可行性；區分阻擋問題與可選改善，不重寫使用者的策略。
 
-## When to Use
+## 執行流程
 
-- After `edge-strategy-designer` generates `strategy_drafts/*.yaml`
-- Before exporting drafts to `edge-candidate-agent` via the pipeline
-- When manually validating a draft strategy for edge plausibility
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-research.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-## Prerequisites
+## 方法論資源
 
-- Strategy draft YAML files (output of `edge-strategy-designer`)
-- Python 3.10+ with PyYAML
+- [overfitting_checklist.md](references/overfitting_checklist.md)
+- [review_criteria.md](references/review_criteria.md)
 
-## Workflow
-
-1. Load draft YAML files from `--drafts-dir` or a single `--draft` file
-2. Evaluate each draft against 8 criteria (C1-C8) with weighted scoring
-3. Compute confidence score (weighted average of all criteria)
-4. Determine verdict: PASS / REVISE / REJECT
-5. Assess export eligibility (PASS + export_ready_v1 + exportable family)
-6. Write review output (YAML or JSON) and optional markdown summary
-
-## Review Criteria
-
-| # | Criterion | Weight | Key Checks |
-|---|-----------|--------|------------|
-| C1 | Edge Plausibility | 20 | Thesis quality, domain terms, mechanism keywords (continuous 50-95) |
-| C2 | Overfitting Risk | 20 | 5-tier filter count scoring (90/80/60/40/10), precise threshold penalty |
-| C3 | Sample Adequacy | 15 | Continuous scoring from estimated annual opportunities (10-95) |
-| C4 | Regime Dependency | 10 | Cross-regime validation |
-| C5 | Exit Calibration | 10 | Stop-loss, reward-to-risk |
-| C6 | Risk Concentration | 10 | Position sizing limits |
-| C7 | Execution Realism | 10 | Volume filter, export consistency |
-| C8 | Invalidation Quality | 5 | Signal count and specificity |
-
-## Verdict Logic
-
-- C1 or C2 severity=fail → immediate REJECT
-- confidence >= 70, no fail findings → PASS
-- confidence < 35 → REJECT
-- Otherwise → REVISE (with revision instructions)
-
-## Running the Script
-
-```bash
-# Review all drafts in a directory
-python3 skills/edge-strategy-reviewer/scripts/review_strategy_drafts.py \
-  --drafts-dir reports/edge_strategy_drafts/ \
-  --output-dir reports/
-
-# Single draft review
-python3 skills/edge-strategy-reviewer/scripts/review_strategy_drafts.py \
-  --draft reports/edge_strategy_drafts/draft_xxx.yaml \
-  --output-dir reports/
-
-# JSON output with markdown summary
-python3 skills/edge-strategy-reviewer/scripts/review_strategy_drafts.py \
-  --drafts-dir reports/edge_strategy_drafts/ \
-  --output-dir reports/ \
-  --format json \
-  --markdown-summary
-
-# Strict export mode: export-eligible drafts with any warn → REVISE
-python3 skills/edge-strategy-reviewer/scripts/review_strategy_drafts.py \
-  --drafts-dir reports/edge_strategy_drafts/ \
-  --output-dir reports/ \
-  --strict-export
-
-# Bias checklist (issue #297): mandatory strategy-research bias gate.
-# Uses the bundled checklist unless a custom YAML path is supplied.
-# A draft leaving any required item unaddressed is downgraded PASS → REVISE
-# and loses export eligibility.
-python3 skills/edge-strategy-reviewer/scripts/review_strategy_drafts.py \
-  --drafts-dir reports/edge_strategy_drafts/ \
-  --output-dir reports/ \
-  --bias-checklist
-```
-
-## Output Format
-
-Primary output: `review.yaml` (or `review.json`)
-
-```yaml
-generated_at_utc: "2026-02-28T12:00:00+00:00"
-source:
-  drafts_dir: "/path/to/strategy_drafts"
-  draft_count: 4
-summary:
-  total: 4
-  PASS: 1
-  REVISE: 2
-  REJECT: 1
-  export_eligible: 1
-reviews:
-  - draft_id: "draft_xxx_core"
-    verdict: "PASS"
-    confidence_score: 80
-    export_eligible: true
-    findings: [...]
-    revision_instructions: []
-```
-
-## Resources
-
-- `references/review_criteria.md` — Detailed scoring rubric for C1-C8
-- `references/overfitting_checklist.md` — Overfitting detection heuristics
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

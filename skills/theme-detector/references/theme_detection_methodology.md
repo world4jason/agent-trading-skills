@@ -213,7 +213,7 @@ The lifecycle stage is classified from the maturity score:
 | 60-80 | Mature |
 | 80-100 | Exhausting |
 
-**Note:** Media/Narrative Saturation is not included in the automated maturity calculation. Claude's WebSearch narrative confirmation can be used to qualitatively adjust the lifecycle assessment.
+**Note:** Media/Narrative Saturation is not included in the automated maturity calculation. Codex's web search narrative confirmation can be used to qualitatively adjust the lifecycle assessment.
 
 ---
 
@@ -245,7 +245,7 @@ Cross-sector participation adds confidence:
 
 #### 3.3 Narrative Layer (modifier, applied in Step 4)
 
-WebSearch confirmation adjusts confidence:
+web search confirmation adjusts confidence:
 
 | Narrative Finding | Modifier |
 |-------------------|----------|
@@ -316,7 +316,7 @@ direction = majority_vote([ind.rank_direction for ind in theme.industries])
 - Significantly improves uptrend ratio accuracy
 - If unavailable, FINVIZ price-vs-SMA200 is used as proxy
 
-### Quaternary: WebSearch (narrative layer)
+### Quaternary: web search (narrative layer)
 
 - Used for narrative confirmation in Step 4
 - Not automated; Claude performs searches during workflow
@@ -426,7 +426,7 @@ This provides more accurate uptrend ratios than simple price-above-SMA200 proxy.
 
 7. **Duration tracking**: First-run analysis cannot assess theme duration without historical baseline data.
 
-8. **Narrative subjectivity**: Confidence adjustment from WebSearch is inherently subjective and depends on search result quality.
+8. **Narrative subjectivity**: Confidence adjustment from web search is inherently subjective and depends on search result quality.
 
 9. **Survivorship bias**: Analysis only covers currently listed stocks and active ETFs, missing delisted or closed instruments.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "評估台股曝險與風險姿態"
+  short_description: "Taiwan stocks and ETFs: exposure-coach"
+  default_prompt: "使用 $exposure-coach，評估台股曝險與風險姿態。"

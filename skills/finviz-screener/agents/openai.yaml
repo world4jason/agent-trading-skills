@@ -1,0 +1,4 @@
+interface:
+  display_name: "依條件篩選台股與 ETF"
+  short_description: "Taiwan stocks and ETFs: finviz-screener"
+  default_prompt: "使用 $finviz-screener，依條件篩選台股與 ETF。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "分析台股產業相對強弱"
+  short_description: "Taiwan stocks and ETFs: sector-analyst"
+  default_prompt: "使用 $sector-analyst，分析台股產業相對強弱。"

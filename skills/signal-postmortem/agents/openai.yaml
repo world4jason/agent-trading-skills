@@ -1,0 +1,4 @@
+interface:
+  display_name: "回顧台股訊號結果"
+  short_description: "Taiwan stocks and ETFs: signal-postmortem"
+  default_prompt: "使用 $signal-postmortem，回顧台股訊號結果。"

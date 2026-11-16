@@ -1,0 +1,4 @@
+interface:
+  display_name: "研究台股配對關係"
+  short_description: "Taiwan stocks and ETFs: pair-trade-screener"
+  default_prompt: "使用 $pair-trade-screener，研究台股配對關係。"

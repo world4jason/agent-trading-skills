@@ -1,68 +1,24 @@
 ---
 name: trade-hypothesis-ideator
-description: >
-  Generate falsifiable trade strategy hypotheses from market data, trade logs,
-  and journal snippets. Use when you have a structured input bundle and want
-  ranked hypothesis cards with experiment designs, kill criteria, and optional
-  strategy.yaml export compatible with edge-finder-candidate/v1.
+description: 從台股紀錄提出可否證假說。用使用者交易紀錄與資料提出機制、條件、反證、所需樣本，區分待驗證與已測試，避免重複探索造成過度擬合。 適用於台灣上市、上櫃股票與
+  ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Trade Hypothesis Ideator
+# 從台股紀錄提出可否證假說
 
-Generate 1-5 structured hypothesis cards from a normalized input bundle, critique and rank them, then optionally export `pursue` cards into `strategy.yaml` + `metadata.json` artifacts.
+用使用者交易紀錄與資料提出機制、條件、反證、所需樣本，區分待驗證與已測試，避免重複探索造成過度擬合。
 
-## When to Use
+## 執行流程
 
-- After gathering trade logs, journal entries, or market observations that suggest a potential edge
-- When you have a structured input bundle (JSON) with evidence snippets and want falsifiable hypotheses
-- To bridge qualitative observations into quantitative experiment designs
-- Before committing capital to validate a new strategy idea with kill criteria
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-research.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-## Prerequisites
+## 方法論資源
 
-- Input JSON bundle with one or more of: `trade_log`, `journal_snippets`, `market_data`, `observations`
-- Python 3.9+ with `pyyaml` installed
-- No external API keys required (pure calculation skill)
+- [evidence_quality_guide.md](references/evidence_quality_guide.md)
+- [hypothesis_types.md](references/hypothesis_types.md)
 
-## Workflow
-
-1. Receive input JSON bundle.
-2. Run pass 1 normalization + evidence extraction.
-3. Generate hypotheses with prompts:
-   - `prompts/system_prompt.md`
-   - `prompts/developer_prompt_template.md` (inject `{{evidence_summary}}`)
-4. Critique hypotheses with `prompts/critique_prompt_template.md`.
-5. Run pass 2 ranking + output formatting + guardrails.
-6. Optionally export `pursue` hypotheses via Step H strategy exporter.
-
-## Scripts
-
-- Pass 1 (evidence summary):
-
-```bash
-python3 skills/trade-hypothesis-ideator/scripts/run_hypothesis_ideator.py \
-  --input skills/trade-hypothesis-ideator/examples/example_input.json \
-  --output-dir reports/
-```
-
-- Pass 2 (rank + output + optional export):
-
-```bash
-python3 skills/trade-hypothesis-ideator/scripts/run_hypothesis_ideator.py \
-  --input skills/trade-hypothesis-ideator/examples/example_input.json \
-  --hypotheses reports/raw_hypotheses.json \
-  --output-dir reports/ \
-  --export-strategies
-```
-
-## Output
-
-- `hypothesis_cards_<date>.json` — Ranked hypothesis cards with verdicts (`pursue`, `revise`, `discard`)
-- `hypothesis_cards_<date>.md` — Human-readable summary with experiment designs and kill criteria
-- `strategy_<hypothesis_id>.yaml` — (Optional) Edge-finder-compatible strategy export for `pursue` cards
-- `metadata_<hypothesis_id>.json` — (Optional) Provenance metadata for exported strategies
-
-## Resources
-
-- `references/hypothesis_types.md` — Taxonomy of hypothesis patterns (mean-reversion, momentum, event-driven, etc.)
-- `references/evidence_quality_guide.md` — Criteria for rating evidence strength and sample size requirements
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

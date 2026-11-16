@@ -1,4 +1,4 @@
 interface:
-  display_name: "Residual Edge Analyzer"
-  short_description: "Separate baseline exposure from residual strategy edge"
-  default_prompt: "Use $residual-edge-analyzer to test whether my strategy returns contain robust residual edge beyond declared baselines."
+  display_name: "分離台股策略的基準曝險與殘餘表現"
+  short_description: "Taiwan stocks and ETFs: residual-edge-analyzer"
+  default_prompt: "使用 $residual-edge-analyzer，分離台股策略的基準曝險與殘餘表現。"

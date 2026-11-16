@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢查台股研究資料品質"
+  short_description: "Taiwan stocks and ETFs: data-quality-checker"
+  default_prompt: "使用 $data-quality-checker，檢查台股研究資料品質。"

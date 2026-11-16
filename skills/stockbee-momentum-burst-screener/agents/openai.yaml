@@ -1,0 +1,4 @@
+interface:
+  display_name: "辨識台股短期動能擴張"
+  short_description: "Taiwan stocks and ETFs: stockbee-momentum-burst-screener"
+  default_prompt: "使用 $stockbee-momentum-burst-screener，辨識台股短期動能擴張。"

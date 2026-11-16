@@ -1,0 +1,4 @@
+interface:
+  display_name: "從台股紀錄提出可否證假說"
+  short_description: "Taiwan stocks and ETFs: trade-hypothesis-ideator"
+  default_prompt: "使用 $trade-hypothesis-ideator，從台股紀錄提出可否證假說。"

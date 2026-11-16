@@ -7,7 +7,7 @@ Every skill follows this standardized structure:
 ```
 <skill-name>/
 ├── SKILL.md              # Required: Skill definition with YAML frontmatter
-├── references/           # Knowledge bases loaded into Claude's context
+├── references/           # Knowledge bases loaded into Codex's context
 ├── scripts/             # Executable Python scripts (not auto-loaded)
 │   └── tests/           # Test files for scripts
 └── assets/              # Templates and resources for output generation
@@ -39,7 +39,7 @@ description: <one-line trigger description>
 ## Writing Style
 
 - Use imperative/infinitive verb forms: "Analyze the chart", "Generate report"
-- Write instructions for Claude to execute, NOT user instructions
+- Write instructions for Codex to execute, NOT user instructions
 - Avoid "You should..." or "Claude will..." -- state actions directly
 - Include concrete bash command examples with full paths
 

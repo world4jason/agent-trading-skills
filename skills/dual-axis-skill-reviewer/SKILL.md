@@ -1,124 +1,24 @@
 ---
 name: dual-axis-skill-reviewer
-description: "Review skills in any project using a dual-axis method: (1) deterministic code-based checks (structure, scripts, tests, execution safety) and (2) LLM deep review findings. Use when you need reproducible quality scoring for `skills/*/SKILL.md`, want to gate merges with a score threshold (for example 90+), or need concrete improvement items for low-scoring skills. Works across projects via --project-root."
+description: 審查台股 skill 的程式與分析品質。先驗證實際指令、輸入輸出與測試，再獨立評估分析方法及來源；不得用上游美股測試通過宣稱台股整合已驗證。
+  適用於台灣上市、上櫃股票與 ETF 的研究請求；使用 FinMind 為主、Yahoo 行情補充。
 ---
 
-# Dual Axis Skill Reviewer
+# 審查台股 skill 的程式與分析品質
 
-Run the dual-axis reviewer script and save reports to `reports/`.
+先驗證實際指令、輸入輸出與測試，再獨立評估分析方法及來源；不得用上游美股測試通過宣稱台股整合已驗證。
 
-The script supports:
-- Random or fixed skill selection
-- Auto-axis scoring with optional test execution
-- LLM prompt generation
-- LLM JSON review merge with weighted final score
-- Cross-project review via `--project-root`
-- Non-scoring display of `skills-index.yaml` production verification declarations
+## 執行流程
 
-## When to Use
+1. 先讀 [Codex 台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
+2. 依 [本類分析操作指引](../../references/taiwan-meta.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
+3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
+4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
+5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
 
-- Need reproducible scoring for one skill in `skills/*/SKILL.md`.
-- Need improvement items when final score is below 90.
-- Need both deterministic checks and qualitative LLM code/content review.
-- Need to review skills in a **different project** from the command line.
+## 方法論資源
 
-## Prerequisites
+- [llm_review_schema.md](references/llm_review_schema.md)
+- [scoring_rubric.md](references/scoring_rubric.md)
 
-- Python 3.9+
-- `uv` (recommended — auto-resolves `pyyaml` dependency via inline metadata)
-- For tests: `uv sync --extra dev` or equivalent in the target project
-- For LLM-axis merge: JSON file that follows the LLM review schema (see Resources)
-
-## Workflow
-
-Determine the correct script path based on your context:
-
-- **Same project**: `skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py`
-- **Global install**: `~/.claude/skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py`
-
-The examples below use `REVIEWER` as a placeholder. Set it once:
-
-```bash
-# If reviewing from the same project:
-REVIEWER=skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py
-
-# If reviewing another project (global install):
-REVIEWER=~/.claude/skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py
-```
-
-### Step 1: Run Auto Axis + Generate LLM Prompt
-
-```bash
-uv run "$REVIEWER" \
-  --project-root . \
-  --emit-llm-prompt \
-  --output-dir reports/
-```
-
-When reviewing a different project, point `--project-root` to it:
-
-```bash
-uv run "$REVIEWER" \
-  --project-root /path/to/other/project \
-  --emit-llm-prompt \
-  --output-dir reports/
-```
-
-### Step 2: Run LLM Review
-- Use the generated prompt file in `reports/skill_review_prompt_<skill>_<timestamp>.md`.
-- Ask the LLM to return strict JSON output.
-- When running inside Claude Code, let Claude act as orchestrator: read the generated prompt, produce the LLM review JSON, and save it for the merge step.
-
-### Step 3: Merge Auto + LLM Axes
-
-```bash
-uv run "$REVIEWER" \
-  --project-root . \
-  --skill <skill-name> \
-  --llm-review-json <path-to-llm-review.json> \
-  --auto-weight 0.5 \
-  --llm-weight 0.5 \
-  --output-dir reports/
-```
-
-### Step 4: Optional Controls
-
-- Fix selection for reproducibility: `--skill <name>` or `--seed <int>`
-- Review all skills at once: `--all`
-- Skip tests for quick triage: `--skip-tests`
-- Change report location: `--output-dir <dir>`
-- Increase `--auto-weight` for stricter deterministic gating.
-- Increase `--llm-weight` when qualitative/code-review depth is prioritized.
-
-## Output
-
-- `reports/skill_review_<skill>_<timestamp>.json`
-- `reports/skill_review_<skill>_<timestamp>.md`
-- `reports/skill_review_prompt_<skill>_<timestamp>.md` (when `--emit-llm-prompt` is enabled)
-
-When the target project has a `skills-index.yaml` entry with a complete `verification` block, JSON
-and Markdown reports also show its declared axes, `not_verified` gaps, non-applicable axes, and
-`all_applicable_axes_passed`. This section is informational only. It is excluded from auto/LLM/final
-scores and does not replace a live high-severity issue check.
-
-## Installation (Global)
-
-To use this skill from any project, symlink it into `~/.claude/skills/`:
-
-```bash
-ln -sfn /path/to/claude-trading-skills/skills/dual-axis-skill-reviewer \
-  ~/.claude/skills/dual-axis-skill-reviewer
-```
-
-After this, Claude Code will discover the skill in all projects, and the script is accessible at `~/.claude/skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py`.
-
-## Resources
-
-- Auto axis scores metadata, workflow coverage, execution safety, artifact presence, and test health.
-- Auto axis detects `knowledge_only` skills and adjusts script/test expectations to avoid unfair penalties.
-- LLM axis scores deep content quality (correctness, risk, missing logic, maintainability).
-- Final score is weighted average.
-- If final score is below 90, improvement items are required and listed in the markdown report.
-- Script: `skills/dual-axis-skill-reviewer/scripts/run_dual_axis_review.py`
-- LLM schema: `references/llm_review_schema.md`
-- Rubric detail: `references/scoring_rubric.md`
+這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。

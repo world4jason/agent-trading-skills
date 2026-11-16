@@ -1,0 +1,4 @@
+interface:
+  display_name: "Options Strategy Advisor"
+  short_description: "Trading toolkit: Options Strategy Advisor"
+  default_prompt: "Use $options-strategy-advisor to help with my trading research request."

@@ -1,191 +1,27 @@
 ---
 name: trading-skills-navigator
-description: >-
-  Recommend the right trading workflow, skillset, API profile, and setup path
-  from a natural-language goal. Use this as the on-ramp when a user expresses a
-  trading or investing goal and needs to know which skill/workflow to use, where
-  to start, or whether something works without paid API keys — e.g. "where do I
-  start", "which skill should I use", "I want to swing trade only when the market
-  is favorable", "what works without API keys", "どれを使えばいい", "API キー無しで
-  使えるものは". Routes and explains only; it never executes trades or auto-runs
-  other skills, and it is honest when no workflow has shipped yet.
+description: 依中文或英文問題，導覽台灣上市、上櫃股票與 ETF 的研究 skills、資料需求及流程。用於不知道該用哪個 skill、想找台股選股/持股/股利/技術/倉位或免付費資料路徑的請求。只推薦與解釋，不執行交易；期貨、選擇權等範圍外問題明確回報。
 ---
 
-# Trading Skills Navigator
+# 台股研究流程導覽
 
-The interactive on-ramp for this repository. It turns a user's goal into a
-concrete recommendation: which **workflow** to run, which **skillset**
-(skills-index category) it belongs to, the **API requirement**, and the
-**setup path** for Claude Web App or Claude Code.
-
-A new user faces 74 skills + 14 workflows with no router. This skill is that
-router. It is **deterministic** — a Python recommender (`scripts/recommend.py`)
-consumes the repo metadata; this SKILL.md narrates the result conversationally.
-
-## When to Use
-
-- The user expresses a trading/investing goal and asks where to start or which
-  skill/workflow to use ("どれを使えばいい", "where do I start").
-- The user asks what works **without paid API keys**.
-- The user wants the no-API vs API path separated, or a beginner path.
-- The user describes a persona ("part-time swing trader", "dividend investor",
-  "I want to short", "I want to backtest ideas") and needs routing.
-
-Do **not** use this skill to execute trades, place orders, or auto-run other
-skills. It recommends and explains only.
-
-## Prerequisites
-
-- **API keys:** None required. The recommender reads local repository metadata and does not use the network.
-- **Python:** 3.9+ with `PyYAML>=6.0` (see `requirements.txt`).
-- **Data:** `skills-index.yaml` and `workflows/*.yaml`, or the bundled snapshot when the skill runs outside the repository.
-
-## Workflow
-
-### Step 1 — Capture the goal and constraints
-
-From the user's message, extract:
-
-- The natural-language **goal** (verbatim is fine).
-- Optional constraints: **no-API** only? a daily **time budget**
-  (15m/30m/60m/90m)? **experience** level (beginner/intermediate/advanced)?
-
-Ask at most one brief clarifying question only if the goal is empty or has no
-discernible intent. Otherwise proceed — the recommender degrades gracefully.
-
-### Step 2 — Run the recommender
+先讀 [台股執行環境](../../CODEX_RUNTIME.md)。
+將使用者原問題交給本版推薦器：
 
 ```bash
-python3 skills/trading-skills-navigator/scripts/recommend.py \
-  --query "<the user's goal, verbatim>" \
-  --format json
-  # optional: --no-api  --time-budget 15m|30m|60m|90m|any
-  #           --experience beginner|intermediate|advanced
+rtk proxy .venv/bin/python skills/trading-skills-navigator/scripts/recommend.py --query "分析0050與00878 ETF" --format json
 ```
 
-- In **Claude Code** the script reads the repo-root SSoT
-  (`skills-index.yaml` + `workflows/*.yaml`) automatically.
-- In the **Claude Web App** there is no repo root; the script transparently
-  falls back to the bundled `assets/metadata_snapshot.json`. The recommendation
-  is byte-identical in both environments — no behavior change for the user.
+從 bundle 根目錄執行，或使用腳本絕對路徑。程式預設讀自身 bundle 的台股索引，
+不依賴目前工作目錄，也不回退到舊美股快照。
 
-### Step 3 — Narrate the result conversationally
-
-Parse the JSON and explain, in the user's language:
-
-- **Primary workflow** — `display_name`, `cadence`, `~estimated_minutes`,
-  `api_profile`. State plainly what it does and when to run it.
-- **Routing diagnostics** — read `routing_diagnostics.status`. For
-  `ambiguous`, name every `candidate_personas` entry and explain that the
-  ordered first match was selected, except when `no-api-path` is a constraint
-  on another matched goal. For `fallback`, state that no persona
-  matched and ask the user to rephrase; never present the beginner fallback as
-  an exact intent match. `unavailable` means the matched goal is blocked;
-  retain the original persona in the explanation.
-- **Goal availability** — read `goal_match.workflow`, `runnability`, and
-  `missing_requirements` before describing a recommendation. `eligible` means
-  metadata and specified constraints permit that workflow; it does not confirm
-  that data or input files are ready. If `alternative_workflow` is present,
-  label it by `relationship`: `different_goal` is a **different-goal** on-ramp;
-  `limited_alternative` is a narrower offline path for the same holdings.
-- **Secondary workflows** — if any, how they relate (e.g. "run the regime
-  check first, then this when it allows risk"). If `dropped_secondary_workflows`
-  is non-empty, say which follow-on workflows were omitted under no-API mode
-  and why; they never make the goal blocked.
-- **Skillset** — the `skillset.id` (skills-index category).
-  `manifest_status: active` means a curated `skillsets/<id>.yaml` bundle ships
-  for this category (market-regime, core-portfolio, dividend-income,
-  swing-opportunity, trade-memory, strategy-research) — mention it as the install bundle for the
-  recommended workflow. `manifest_status: deferred` means no manifest yet
-  (e.g. honest-gap categories); the recommendation is workflow-based only.
-- **No-API vs API** — read `no_api_path`: `true` → the entire recommended path
-  works without paid API keys (state this plainly); `false` → tell the user
-  which paid key(s) the path needs; `null` → no usable path for the requested goal. (`no_api` is
-  the *request* flag — whether no-API mode was active — not whether the path is
-  free; always narrate `no_api_path`.) If a workflow was excluded under
-  `--no-api`, surface the `rationale` entry naming the paid integration (e.g.
-  "swing-opportunity-daily needs FMP").
-- **Honest gap** — `honest_gap: true` means no usable path for this goal. If
-  `goal_match.runnability` is `unshipped`, no dedicated workflow exists and
-  `suggested_skills` may help. If it is `blocked`, a matching workflow exists
-  but is unavailable: explain each missing requirement. A CSV portfolio source
-  or saved positions file selects `portfolio-holdings-review`, a limited offline
-  allocation/P&L path. Relay its `note`: the user must supply the actual file and
-  source `--as-of`;
-  Navigator does not read or validate holdings files. Eligibility does not
-  establish ownership, completeness, freshness or suitability for trading.
-  Full account risk, brokerage review and reconciliation remain outside this
-  limited path. Any CSV mention is read as the source unless it is clearly an
-  output (export/save/send; CSVに出力) with no input wording. CSV output requests
-  retain the full brokerage route. Explicit saved-file input (for example,
-  "from a saved Alpaca positions JSON") keeps the offline route when JSON
-  output is also requested, even with API provenance or "without API" wording.
-  JSON output alone, live API/feed input, or a negated file source does not
-  select the offline route. If loaded metadata lacks the CSV workflow,
-  report the unsupported-capability gap instead of claiming it is runnable.
-- **Backtest execution request** — relay the `note` when the research workflow
-  is recommended for a request containing backtest terms. It can evaluate
-  separately measured metrics but does not execute the backtest. Its
-  `no_api_path` does not describe the separate backtest tool or data.
-- **Operational roles** — narrate the `operational_roles` entry for every
-  skill in the setup bundle or honest-gap suggestion. Explain standalone
-  rationale when present; keep enum values unchanged.
-- Always read the `rationale` array and explain *why* this was recommended.
-
-### Step 4 — Explain the setup path
-
-Read `references/setup_paths.md` and walk the user through installing
-**`setup_bundle`** — the recommender's deterministic install union over the
-primary skillset **and every secondary workflow** (so nothing is dropped for a
-multi-workflow recommendation). Enumerate `setup_bundle.required` →
-`recommended` → `optional`, cite `setup_bundle.sources` to explain *why* each
-skill is needed, and name `skillset.manifest.related_workflows` for *how* the
-bundle is run. Narrate `skillset.manifest` (when present) as "what the
-recommended skillset is". On an honest gap install `suggested_skills`. Do this
-for whichever environment the user is in (Claude Web App `.skill` upload, or
-Claude Code folder copy); call out any paid API keys those skills need.
-
-### Step 5 — Point to the learning loop
-
-Close by pointing the user at `trader-memory-core` and the
-`trade-memory-loop` / `monthly-performance-review` workflows so every
-recommended path feeds the Plan → Trade → Record → Review → Improve loop.
-
-## Output Format
-
-The JSON the recommender emits (stable, idempotent, `sort_keys`):
-
-| Field | Meaning |
-|---|---|
-| `primary_workflow` | Recommended workflow object, or `null` on an honest gap |
-| `secondary_workflows` | Supporting workflows (ordered, time-budget filtered) |
-| `skillset` | `{id, source: skills-index.category, manifest_status, manifest}`. `manifest_status` is `active` when `skillsets/<id>.yaml` ships, else `deferred`. `manifest` is the 5-key view `{display_name, required_skills, recommended_skills, optional_skills, related_workflows}` when active, else `null`. Describes the **primary skillset only** — not the install list |
-| `setup_bundle` | `{required, recommended, optional, sources}` — the actionable install union over the primary skillset **and every secondary workflow** (deterministic, tier-deduped). **This is what to install.** All-empty on an honest gap (use `suggested_skills`) |
-| `suggested_skills` | Skills to use when no workflow shipped (honest gap); else `[]` |
-| `operational_roles` | Skill id → `{type, rationale?}` for every setup-bundle skill, or every `suggested_skills` item on an honest gap |
-| `no_api` | Request-side: was no-API constraint mode active (flag or persona) |
-| `no_api_path` | Path-side: does the **whole** recommendation (primary + every secondary) work without paid API keys? `true`/`false`; `null` on an honest gap. This is the DoD's API-vs-no-API separation — narrate it explicitly |
-| `honest_gap` | `true` when no usable workflow can serve the matched goal (`unshipped` or `blocked`) |
-| `goal_match` | Original `{persona, workflow, runnability, missing_requirements}`; `eligible` only means metadata/constraint eligibility |
-| `alternative_workflow` | Separate `{workflow, relationship: different_goal or limited_alternative, no_api_path, explanation}` or `null`; never substitutes for the goal |
-| `dropped_secondary_workflows` | `[{id, reason}]` — secondary workflows removed because they need a paid API under `--no-api`; `[]` otherwise. Not a blocker: narrate it so the user knows a follow-on step was omitted |
-| `note` | Plain-language explanation for gaps / unmapped input |
-| `rationale` | Ordered list of why-this-was-recommended strings |
-| `routing_diagnostics` | `{status, selected_persona, candidate_personas, explanation}`. `status` is `exact`, `ambiguous`, `fallback`, or `unavailable`; candidates are all pre-constraint persona matches in deterministic order |
-| `setup_path_ref` | Pointer to the setup-path reference |
-
-## Resources
-
-- `scripts/recommend.py` — the deterministic recommender (single source of
-  truth for routing).
-- `scripts/build_snapshot.py` — regenerates `assets/metadata_snapshot.json`
-  from the SSoT; `--check` guards drift (pre-commit + CI).
-- `scripts/intent_benchmark.py` — validates the fail-closed bilingual routing
-  corpus, persona shadowing contracts, and metamorphic invariants.
-- `references/intent_routing.md` — the persona table, the 10-question contract,
-  the `--no-api` credential rule, and scoring tie-breaks.
-- `references/setup_paths.md` — Claude Web App vs Claude Code setup steps.
-- `assets/metadata_snapshot.json` — generated SSoT digest for the Web App
-  fallback. Never edit by hand; run `build_snapshot.py`.
-- `assets/intent_benchmark_v1.json` — 246 explicitly labeled EN/JA routing
-  cases with 1.0 precision/recall and per-persona/workflow coverage gates.
+- 依 `routing_diagnostics.status` 解釋結果：`out_of_scope` 不改推薦別的市場；
+  `needs_goal` 請使用者描述研究問題；`ambiguous` 說明候選而非假裝精確匹配。
+- `suggested_skills` 是本題候選；`related_workflows` 只是背景流程，不能因此自動擴大工作。
+  只有明確指定 workflow ID 時 `primary_workflow` 才列完整步驟。
+- `--no-api` 沿用「不使用付費資料」的意思，不保證每項資料免費或可得；
+  真正離線要求使用者已提供資料，不能暗中呼叫網路。
+- `--time-budget` 和 `--experience` 只保存對話偏好，不能據此宣稱任務可在某時間完成。
+- skills 已安裝；資料源的 token、額度、資料日期與可得性仍需執行時驗證。
+- 回覆使用者語言，列出推薦原因、必要輸入與尚待確認項目；若使用者要求開始分析，
+  讀對應 SKILL.md 再執行，導覽器本身不執行研究或下單。

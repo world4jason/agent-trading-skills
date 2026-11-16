@@ -44,7 +44,7 @@ Generate API keys from your Alpaca dashboard:
 
 **Step 1: Install Alpaca MCP Server**
 
-The Alpaca MCP server may be available through Claude's MCP marketplace or as a standalone package.
+The Alpaca MCP server may be available through Codex's MCP marketplace or as a standalone package.
 
 Check if available in your Claude environment:
 ```bash

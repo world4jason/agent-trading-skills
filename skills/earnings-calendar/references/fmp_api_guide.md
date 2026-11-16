@@ -287,7 +287,7 @@ filtered_earnings = filter_by_market_cap(earnings, profiles)
 
 ## API Key Management - Multi-Environment Support
 
-### Environment 1: Claude Code (CLI)
+### Environment 1: Codex (CLI)
 
 Set environment variable:
 ```bash

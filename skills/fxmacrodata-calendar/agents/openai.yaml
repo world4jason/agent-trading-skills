@@ -1,0 +1,4 @@
+interface:
+  display_name: "檢查台股相關匯率與總經事件"
+  short_description: "Taiwan stocks and ETFs: fxmacrodata-calendar"
+  default_prompt: "使用 $fxmacrodata-calendar，檢查台股相關匯率與總經事件。"
