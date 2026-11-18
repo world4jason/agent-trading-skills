@@ -32,6 +32,44 @@ def test_explicit_exclusion_and_no_paid_data_do_not_imply_availability():
     assert result["executes_analysis"] is False
 
 
+def test_provider_metadata_describes_capabilities_and_whole_range_fallback():
+    data_access = nav.recommend("分析台股價格")["data_access"]
+    assert data_access["daily_price_policy"] == {
+        "provider_options": ["auto", "yahoo", "finmind"],
+        "auto_order": ["yahoo", "finmind"],
+        "explicit_provider_fallback": "other_provider_whole_range",
+    }
+    assert data_access["provider_capabilities"] == {
+        "finmind": ["taiwan_catalogue", "taiwan_calendar", "daily_prices", "raw_financial_datasets"],
+        "yahoo": ["daily_prices", "full_fundamental_snapshot_fills_available_gaps"],
+    }
+    assert "primary" not in data_access
+    assert "price_supplement" not in data_access
+
+    index = yaml.safe_load((nav.ROOT / "skills-index.yaml").read_text())
+    finmind_notes = {
+        integration["note"]
+        for skill in index["skills"]
+        for integration in skill.get("integrations", [])
+        if integration.get("id") == "finmind"
+    }
+    yahoo_notes = {
+        integration["note"]
+        for skill in index["skills"]
+        for integration in skill.get("integrations", [])
+        if integration.get("id") == "yahoo"
+    }
+    assert finmind_notes == {
+        "Capability for Taiwan catalogue/calendar and raw financial datasets; daily prices "
+        "are available as fallback after Yahoo in auto mode. Token, quotas and coverage vary "
+        "by dataset; verified supplied data may also be used"
+    }
+    assert yahoo_notes == {
+        "Auto mode tries Yahoo daily prices first; its full fundamental snapshot can fill "
+        "available gaps. Field coverage varies; check reported price adjustment basis"
+    }
+
+
 def test_unknown_goal_does_not_claim_exact_market_recommendation():
     assert nav.recommend("hello")["routing_diagnostics"]["status"] == "needs_goal"
 

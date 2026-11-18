@@ -14,7 +14,7 @@ LISTINGS = [{"stock_id": "2330", "symbol": "2330.TW", "kind": "stock", "exchange
 
 @pytest.fixture
 def providers(monkeypatch):
-    monkeypatch.setattr(engine.data, "universe", lambda: {"status":"ok","data":LISTINGS,"warnings":[]})
+    monkeypatch.setattr(engine.data, "universe", lambda **kwargs: {"status":"ok","data":LISTINGS,"warnings":[]})
     monkeypatch.setattr(engine.data, "dataset", lambda *a, **k: {"status":"ok","data":[{"date":"2024-01-05"}]})
     def prices(symbol, *a, **k):
         return {"status":"ok","data":[{"date":"2024-01-05"}],"source":"finmind","as_of":"2024-01-05","warnings":[]}
@@ -63,3 +63,51 @@ def test_all_old_entrypoints_use_taiwan_cli():
         assert process.returncode == 0, process.stderr
         assert "--exchange" in process.stdout
         assert "--api-key" not in process.stdout
+
+
+def test_runner_keeps_provider_preference_and_financial_snapshot(providers, monkeypatch):
+    import taiwan_yahoo
+    import taiwan_fundamental
+    calls=[]
+    def price(symbol,*args,**kwargs):
+        calls.append(kwargs["provider"])
+        return {"status":"ok","data":[{"date":"2024-01-05"}],"source":"yahoo","as_of":"2024-01-05","warnings":[]}
+    monkeypatch.setattr(engine.data,"prices",price)
+    requested_capabilities=[]
+    def snapshot(*a,**k):
+        requested_capabilities.append(k["capabilities"])
+        return {"source":"yahoo","as_of":"2024-01-06","errors":{}}
+    monkeypatch.setattr(taiwan_yahoo,"snapshot",snapshot)
+    monkeypatch.setattr(taiwan_fundamental,"required_datasets",lambda s:[])
+    seen=[]
+    def evaluate(strategy,listing,bars,**kwargs):
+        seen.append(kwargs)
+        return {"status":"evaluated","passed":True,"metrics":{"ranking_eligible":True,"ranking_score":10},"warnings":[]}
+    monkeypatch.setattr(taiwan_fundamental,"evaluate",evaluate)
+    result=engine.screen(strategies=["undervalued-growth"],start="2023-01-01",end="2024-01-07",symbols=["2330","6488"],provider="finmind")
+    assert calls == ["finmind","finmind"]
+    assert all({"income","balance","cashflow","estimates"} <= c for c in requested_capabilities)
+    assert all(x["snapshot"]["preferred_provider"] == "finmind" for x in seen)
+    assert all(x["snapshot"]["evaluation_date"] == "2024-01-07" for x in seen)
+    assert all(x["sessions"] == ["2024-01-05"] for x in seen)
+    assert [r["metrics"]["rank"] for r in result["results"]] == [1,1]
+    assert result["results"][0]["metrics"]["ranked_universe_size"] == 2
+
+
+def test_calendar_fallback_disclosed(providers, monkeypatch):
+    monkeypatch.setattr(engine.data,"dataset",lambda *a,**k:{"status":"error","data":[]})
+    monkeypatch.setattr(engine.data,"market_benchmark",lambda *a,**k:{"status":"ok","data":[{"date":"2024-01-05"}]})
+    result=run()
+    assert result["calendar"]["source"] == "yahoo"
+    assert result["calendar"]["warnings"]
+
+
+def test_explicit_benchmark_gets_expected_session(providers, monkeypatch):
+    requests=[]
+    def prices(symbol,*a,**k):
+        requests.append((symbol,k))
+        return {"status":"ok","source":"yahoo","as_of":"2024-01-05","data":[{"date":"2024-01-05"}],"warnings":[]}
+    monkeypatch.setattr(engine.data,"prices",prices)
+    run(symbols=["2330"],benchmark_symbol="0050")
+    assert requests[0][0] == "0050"
+    assert requests[0][1]["expected_session"] == "2024-01-05"

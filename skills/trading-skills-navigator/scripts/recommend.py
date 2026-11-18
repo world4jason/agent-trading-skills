@@ -92,9 +92,20 @@ def recommend(query, *, project_root=ROOT, no_api=False, time_budget="any", expe
         "related_workflows": [{"id": w["id"], "display_name": w["display_name"]} for w in related],
         "setup_bundle": {"required": matched, "recommended": [], "optional": []},
         "already_installed_edition": "taiwan", "no_api": no_api,
-        "data_access": {"primary": "FinMind", "price_supplement": "Yahoo Finance",
-                        "live_access_verified": False, "paid_access_required": "dataset-dependent",
-                        "note": "--no-api 表示不使用付費資料；可用免費資料或使用者輸入，但不能保證每項分析可完整完成。" if no_api else "實際資料可得性、token、額度及日期範圍須執行時確認。"},
+        "data_access": {
+            "daily_price_policy": {
+                "provider_options": ["auto", "yahoo", "finmind"],
+                "auto_order": ["yahoo", "finmind"],
+                "explicit_provider_fallback": "other_provider_whole_range",
+            },
+            "provider_capabilities": {
+                "finmind": ["taiwan_catalogue", "taiwan_calendar", "daily_prices", "raw_financial_datasets"],
+                "yahoo": ["daily_prices", "full_fundamental_snapshot_fills_available_gaps"],
+            },
+            "live_access_verified": False,
+            "paid_access_required": "dataset-dependent",
+            "note": "--no-api 表示不使用付費資料；可用免費資料或使用者輸入，但不能保證每項分析可完整完成。" if no_api else "實際資料可得性、token、額度及日期範圍須執行時確認。",
+        },
         "time_budget": time_budget, "experience": experience,
         "constraints_note": "時間與經驗是供後續對話參考的偏好，未用來保證執行時長。",
         "executes_analysis": False,

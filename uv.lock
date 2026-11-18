@@ -197,7 +197,7 @@ wheels = [
 ]
 
 [[package]]
-name = "claude-trading-skills"
+name = "agent-trading-skills"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
@@ -256,7 +256,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.17.4" },
     { name = "scipy", specifier = ">=1.13.1" },
     { name = "statsmodels", marker = "extra == 'ci'", specifier = ">=0.14,<0.15" },
-    { name = "yfinance", specifier = ">=0.2.0" },
+    { name = "yfinance", specifier = ">=1.8.0" },
 ]
 provides-extras = ["market-calendar", "dev", "ci"]
 

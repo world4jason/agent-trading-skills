@@ -1,26 +1,16 @@
 {
+  "project": "agent-trading-skills",
   "upstream_commit": "fdfff010e1efe181ebe9c11a0109ef5f8b736147",
   "edition": "taiwan",
+  "validation_date": "2026-11-18",
   "full_upstream_algorithm_parity": false,
   "focused_tests": {
-    "passed": 80,
-    "command": ".venv/bin/python -m pytest scripts/tests/test_install_taiwan.py scripts/tests/test_taiwan_screen.py scripts/tests/test_taiwan_technical.py scripts/tests/test_taiwan_fundamental.py scripts/tests/test_taiwan_data.py scripts/tests/test_taiwan_position.py skills/trading-skills-navigator/scripts/tests/test_taiwan_navigation.py -q"
+    "passed": 242,
+    "command": ".venv/bin/python -m pytest scripts/tests/test_taiwan_data.py scripts/tests/test_taiwan_yahoo.py scripts/tests/test_taiwan_screen.py scripts/tests/test_taiwan_fundamental.py scripts/tests/test_taiwan_pead.py scripts/tests/test_taiwan_technical.py scripts/tests/test_taiwan_position.py scripts/tests/test_install_taiwan.py skills/trading-skills-navigator/scripts/tests/test_taiwan_navigation.py skills/pead-screener/scripts/tests -q"
   },
   "skill_validation": {
     "count": 67,
     "missing_resources": 0
-  },
-  "live_technical": {
-    "symbols": [
-      "2330.TW",
-      "6488.TWO",
-      "0050.TW"
-    ],
-    "start": "2023-01-01",
-    "end": "2024-12-31",
-    "source": "finmind",
-    "evaluated": 12,
-    "qualified": 0
   },
   "live_fundamental": {
     "symbols": [
@@ -28,40 +18,227 @@
       "6488.TWO",
       "0050.TW"
     ],
-    "evaluated": 6,
-    "insufficient_data": 4,
-    "not_applicable": 5,
-    "qualified": 0
+    "start": "2025-01-01",
+    "end": "2026-11-17",
+    "provider_preference": "auto",
+    "summary": {
+      "evaluated": 9,
+      "insufficient_data": 1,
+      "not_applicable": 5,
+      "passed": 2
+    },
+    "cases": [
+      {
+        "symbol": "2330.TW",
+        "strategy": "canslim",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "yahoo",
+        "missing_components": [
+          "I"
+        ],
+        "rank": null,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "2330.TW",
+        "strategy": "value-dividend",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "yahoo",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "2330.TW",
+        "strategy": "dividend-growth-pullback",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "yahoo",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "2330.TW",
+        "strategy": "undervalued-growth",
+        "status": "evaluated",
+        "passed": true,
+        "price_source": "yahoo",
+        "missing_components": [],
+        "rank": 2,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "2330.TW",
+        "strategy": "pead",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "yahoo",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": 70.8,
+        "warnings": []
+      },
+      {
+        "symbol": "6488.TWO",
+        "strategy": "canslim",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "finmind",
+        "missing_components": [
+          "I"
+        ],
+        "rank": null,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "6488.TWO",
+        "strategy": "value-dividend",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "6488.TWO",
+        "strategy": "dividend-growth-pullback",
+        "status": "evaluated",
+        "passed": false,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "6488.TWO",
+        "strategy": "undervalued-growth",
+        "status": "evaluated",
+        "passed": true,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": 1,
+        "composite_score": null,
+        "warnings": []
+      },
+      {
+        "symbol": "6488.TWO",
+        "strategy": "pead",
+        "status": "insufficient_data",
+        "passed": null,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": [
+          "No matching completed earnings event with a known Taiwan release time"
+        ]
+      },
+      {
+        "symbol": "0050.TW",
+        "strategy": "canslim",
+        "status": "not_applicable",
+        "passed": null,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": [
+          "Company earnings/valuation screens do not apply to ETFs; use technical strategies"
+        ]
+      },
+      {
+        "symbol": "0050.TW",
+        "strategy": "value-dividend",
+        "status": "not_applicable",
+        "passed": null,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": [
+          "Company earnings/valuation screens do not apply to ETFs; use technical strategies"
+        ]
+      },
+      {
+        "symbol": "0050.TW",
+        "strategy": "dividend-growth-pullback",
+        "status": "not_applicable",
+        "passed": null,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": [
+          "Company earnings/valuation screens do not apply to ETFs; use technical strategies"
+        ]
+      },
+      {
+        "symbol": "0050.TW",
+        "strategy": "undervalued-growth",
+        "status": "not_applicable",
+        "passed": null,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": [
+          "Company earnings/valuation screens do not apply to ETFs; use technical strategies"
+        ]
+      },
+      {
+        "symbol": "0050.TW",
+        "strategy": "pead",
+        "status": "not_applicable",
+        "passed": null,
+        "price_source": "finmind",
+        "missing_components": [],
+        "rank": null,
+        "composite_score": null,
+        "warnings": [
+          "Company earnings/valuation screens do not apply to ETFs; use technical strategies"
+        ]
+      }
+    ]
   },
-  "yahoo_fallback": {
-    "symbol": "0050.TW",
-    "start": "2024-01-02",
-    "end": "2024-01-05",
-    "rows": 4,
-    "finmind_price_failure_injected": true,
-    "yahoo_network_actual": true
-  },
+  "implemented": [
+    "seven-component CANSLIM with partial sponsorship coverage disclosed",
+    "financial-health and dividend cashflow coverage",
+    "comparable forward-estimate valuation and cohort ranking",
+    "PEAD weekly breakout, volume, risk/reward and dated-FX liquidity scoring"
+  ],
   "review": {
     "role": "verifier",
-    "verdict": "ready with limits",
-    "independent_tests_passed": 41,
-    "findings": [
-      "mixed benchmark adjustment bases",
-      "installation KeyboardInterrupt rollback"
+    "model": "gpt-6-luna",
+    "status": "ready after independent post-fix verification",
+    "findings_fixed": [
+      "missing Yahoo identity rejected",
+      "stale explicit benchmark triggers source fallback",
+      "nonpositive EPS cannot pass CANSLIM growth",
+      "zero-volume trading sessions retained in ADV20 denominator"
     ],
-    "parent_fixes_tested": true,
-    "post_fix_independent_review": false
+    "independent_post_fix_tests_passed": 156
   },
   "not_checked": [
     "full upstream test suite",
     "full TWSE/TPEX market scan",
     "profitable Taiwan strategy backtests",
-    "independent corporate-action reconciliation"
+    "independent corporate-action reconciliation",
+    "Claude and OpenCode client installations"
   ],
-  "incomplete": [
-    "full CANSLIM",
-    "dividend financial-health and comparable annual EPS checks",
-    "forward-estimate valuation ranking",
-    "full PEAD weekly breakout and entry scoring"
-  ]
+  "installation": {
+    "skills": 67,
+    "source": "agent-trading-skills checkout",
+    "legacy_cli_smoke_passed": 10
+  }
 }

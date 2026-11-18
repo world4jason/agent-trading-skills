@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""FinMind-first Taiwan stock/ETF data with an explicit Yahoo price fallback."""
+"""Taiwan stock/ETF data with selectable Yahoo and FinMind price providers."""
 
 from __future__ import annotations
 
@@ -157,7 +157,7 @@ def _universe_rows() -> list[dict]:
     return sorted(result, key=lambda item: item["stock_id"])
 
 
-def universe() -> dict:
+def universe(*, symbols: list[str] | None = None) -> dict:
     """Return TWSE/TPEX stock and ETF records from FinMind's historical catalog."""
     try:
         rows = _universe_rows()
@@ -165,7 +165,41 @@ def universe() -> dict:
             raise DataError("FinMind universe is empty")
         return _envelope("ok", "finmind", rows, ["FinMind TaiwanStockInfo includes historical listings; as_of is the latest record date, not proof of current trading activity"], request={"dataset": "TaiwanStockInfo"})
     except DataError as exc:
+        if symbols:
+            try:
+                rows = [_yahoo_listing(symbol) for symbol in symbols]
+                return _envelope("ok", "yahoo", rows, [str(exc), "Explicit symbols verified through Yahoo; no complete Taiwan universe available"], request={"symbols":symbols})
+            except DataError as fallback:
+                return _envelope("error", None, [], [str(exc)], str(fallback), request={"symbols":symbols})
         return _envelope("error", "finmind", [], [], str(exc), request={"dataset": "TaiwanStockInfo"})
+
+
+def _yahoo_listing(symbol: str) -> dict:
+    match = SYMBOL.fullmatch(symbol) if isinstance(symbol,str) else None
+    if not match:
+        raise DataError("Invalid Taiwan stock or ETF symbol")
+    import yfinance as yf
+    code, suffix = match.groups()
+    candidates = [symbol] if suffix else [code+".TW",code+".TWO"]
+    matches = []
+    for candidate in candidates:
+        try:
+            info = yf.Ticker(candidate).get_info()
+        except Exception:
+            continue
+        if not isinstance(info, dict):
+            continue
+        expected_exchange = "TWO" if candidate.endswith(".TWO") else "TAI"
+        kind = {"EQUITY":"stock","ETF":"etf"}.get(info.get("quoteType"))
+        if info.get("symbol") == candidate and info.get("exchange") == expected_exchange and info.get("currency") == "TWD" and kind:
+            if (kind == "stock" and not STOCK.fullmatch(code)) or (kind == "etf" and not ETF.fullmatch(code)):
+                continue
+            matches.append({"stock_id":code,"symbol":candidate,"exchange":"tpex" if expected_exchange == "TWO" else "twse",
+                            "kind":kind,"name":info.get("shortName"),"industry_category":info.get("industry"),
+                            "as_of":datetime.now(timezone.utc).date().isoformat()})
+    if len(matches) != 1:
+        raise DataError("Yahoo cannot uniquely verify Taiwan symbol and exchange")
+    return matches[0]
 
 
 def _resolve(symbol: str, listings: list[dict], *, suffix_allowed: bool = True) -> dict:
@@ -249,33 +283,78 @@ def _yahoo_rows(listing: dict, first: date, last: date) -> list[dict]:
         raise DataError("Yahoo prices unavailable") from None
 
 
-def prices(symbol: str, start: str, end: str, *, listings: list[dict] | None = None) -> dict:
-    """Return daily OHLCV; Yahoo is used only after a verified FinMind price miss."""
-    request = {"dataset": "TaiwanStockPrice", "requested_symbol": symbol, "start": start, "end": end}
+def prices(symbol: str, start: str, end: str, *, listings: list[dict] | None = None, provider: str = "auto", expected_session: str | None = None) -> dict:
+    """Select a whole validated series, honoring an explicit provider preference."""
+    request = {"dataset": "TaiwanStockPrice", "requested_symbol": symbol, "start": start, "end": end,
+               "provider_preference": provider}
     try:
         first, last = _bounds(start, end)
-        listing = _resolve(symbol, _universe_rows() if listings is None else listings)
+        if provider not in ("auto", "yahoo", "finmind"):
+            raise DataError("Unsupported provider preference")
+        if listings is None:
+            catalog = universe(symbols=[symbol])
+            if catalog["status"] != "ok":
+                raise DataError(catalog.get("error", "Symbol catalogue unavailable"))
+            listings = catalog["data"]
+        listing = _resolve(symbol, listings)
         request["resolved_symbol"] = listing["symbol"]
     except DataError as exc:
-        return _envelope("error", "finmind", [], [], str(exc), request=request)
-    try:
-        rows = _finmind("TaiwanStockPrice", symbol=listing["stock_id"], start=start, end=end)
-        finmind_warning = "FinMind returned no price rows"
-    except DataError as exc:
-        rows = []
-        finmind_warning = str(exc)
-    if rows:
+        return _envelope("error", None, [], [], str(exc), request=request)
+    order = ("finmind", "yahoo") if provider == "finmind" else ("yahoo", "finmind")
+    warnings = []
+    for source in order:
         try:
-            return _envelope("ok", "finmind", _bars(rows, listing, first, last, "finmind"), [], request=request)
+            rows = (_finmind("TaiwanStockPrice", symbol=listing["stock_id"], start=start, end=end)
+                    if source == "finmind" else _yahoo_rows(listing, first, last))
+            if not rows:
+                raise DataError(f"{source} returned no price rows")
         except DataError as exc:
-            return _envelope("error", "finmind", [], [], str(exc), request=request)
+            warnings.append(str(exc))
+            continue
+        try:
+            bars = _bars(rows, listing, first, last, source)
+        except DataError as exc:
+            warnings.append(f"{source}: {exc}")
+            continue
+        if expected_session and bars[-1]["date"] != expected_session:
+            warnings.append(f"{source}: missing requested completed session")
+            continue
+        if source == "yahoo":
+            warnings.append("Yahoo reports split-adjusted, dividend-unadjusted OHLC; adjustment not independently verified and no repair applied")
+        if len(warnings) > (1 if source == "yahoo" else 0):
+            warnings.append(f"{source} used for entire range after preferred provider unavailable")
+        return _envelope("ok", source, bars, warnings, request=request)
+    return _envelope("error", None, [], warnings, "No valid price provider: " + "; ".join(warnings), request=request)
+
+
+def market_benchmark(start: str, end: str, *, provider: str = "auto", expected_session: str | None = None) -> dict:
+    """TAIEX is a research benchmark, never added to the tradable universe."""
+    request = {"symbol":"^TWII", "start":start, "end":end, "role":"market_benchmark", "provider_preference":provider}
+    warnings = []
     try:
-        yahoo = _bars(_yahoo_rows(listing, first, last), listing, first, last, "yahoo")
-        if not yahoo:
-            raise DataError("Yahoo prices unavailable")
-        return _envelope("ok", "yahoo", yahoo, [finmind_warning, "Yahoo used for entire range", "Yahoo reports split-adjusted, dividend-unadjusted OHLC; adjustment not independently verified and no repair applied"], request=request)
+        first, last = _bounds(start,end)
+        if provider not in ("auto","yahoo","finmind"):
+            raise DataError("Unsupported provider preference")
     except DataError as exc:
-        return _envelope("error", None, [], [finmind_warning], str(exc), request=request)
+        return _envelope("error",None,[],[],str(exc),request=request)
+    listing = {"symbol":"^TWII", "stock_id":"TAIEX"}
+    order = ("finmind","yahoo") if provider == "finmind" else ("yahoo","finmind")
+    for source in order:
+        try:
+            raw = (_finmind("TaiwanStockPrice",symbol="TAIEX",start=start,end=end) if source == "finmind"
+                   else _yahoo_rows(listing,first,last))
+            rows = _bars(raw,listing,first,last,source)
+            if not rows:
+                raise DataError("Taiwan market benchmark unavailable")
+            if expected_session and rows[-1]["date"] != expected_session:
+                raise DataError("Market benchmark missing requested completed session")
+            for row in rows:
+                row["currency"] = None
+                row["price_unit"] = "index_points"
+            return _envelope("ok",source,rows,warnings+["TAIEX price index benchmark; not total return"],request=request)
+        except DataError as exc:
+            warnings.append(f"{source}: {exc}")
+    return _envelope("error",None,[],warnings,"Taiwan market benchmark unavailable",request=request)
 
 
 def dataset(name: str, symbol: str | None, start: str, end: str, *, listings: list[dict] | None = None) -> dict:
@@ -312,6 +391,7 @@ def main(argv: list[str] | None = None) -> int:
         sub = commands.add_parser(command)
         if command == "prices":
             sub.add_argument("--symbol", required=True)
+            sub.add_argument("--provider", choices=("auto", "yahoo", "finmind"), default="auto")
         elif command == "dataset":
             sub.add_argument("--name", required=True, choices=sorted(DATASETS))
             sub.add_argument("--symbol", help="Required except for TaiwanStockTradingDate")
@@ -320,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--end", required=True)
         sub.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
-    result = universe() if args.command == "universe" else prices(args.symbol, args.start, args.end) if args.command == "prices" else dataset(args.name, args.symbol, args.start, args.end)
+    result = universe() if args.command == "universe" else prices(args.symbol, args.start, args.end, provider=args.provider) if args.command == "prices" else dataset(args.name, args.symbol, args.start, args.end)
     try:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

@@ -39,7 +39,7 @@ rtk proxy .venv/bin/python scripts/taiwan_data.py dataset --name TaiwanStockFina
 
 `prices` 可接受裸代碼或經過市場驗證的 `.TW` / `.TWO`；`dataset` 使用裸字串代碼。
 回傳 envelope 的 `status` 必須為 `ok`，再讀 `data`、`warnings` 與來源資訊。
-空陣列是無資料，不是數值零。FinMind token 使用 `FINMIND_TOKEN` 環境變數。
+空陣列是無資料，不是數值零。使用需要憑證的 FinMind dataset 時，將 token 放在 `FINMIND_TOKEN` 環境變數。
 不要為了取得價格而要求使用者提供 token 到對話中。
 
 日線每列包含 `date,symbol,open,high,low,close,volume`；日期由舊到新，

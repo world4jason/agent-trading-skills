@@ -2,8 +2,9 @@
 
 ## Identity and universe
 
-Resolve stock IDs as strings against FinMind TaiwanStockInfo. Yahoo symbols
-use verified venue suffixes `.TW` (TWSE) or `.TWO` (TPEX); preserve IDs such as
+Resolve stock IDs as strings against a Taiwan stock/ETF catalogue; FinMind
+TaiwanStockInfo can provide this catalogue. Yahoo symbols use verified venue
+suffixes `.TW` (TWSE) or `.TWO` (TPEX); preserve IDs such as
 `0050`, `00679B`, and active-ETF codes. Do not infer venue from digits or query
 a US ticker when Taiwan resolution fails. Exclude emerging-board instruments,
 warrants, ETNs and non-stock/non-ETF securities from this edition's universe.
@@ -23,9 +24,17 @@ Stock tick sizes: below 10: .01; [10,50): .05; [50,100): .10;
 ETF ticks: below 50: .01; 50 and above: .05 TWD.
 The sizing CLI validates prices without silently rounding the user's levels.
 Ordinary sessions generally run 09:00–13:30 Asia/Taipei, with special handling
-for odd lots and delayed auctions. Use FinMind/official trading dates, not a US
-NYSE calendar or a simple weekday check. Historical observed price dates do
-not guarantee that an absent symbol traded or that a future date is open.
+for odd lots and delayed auctions. Use FinMind or official Taiwan trading dates,
+not a US NYSE calendar or a simple weekday check. Historical observed price
+dates do not guarantee that an absent symbol traded or that a future date is open.
+
+Screen and price commands accept `--provider auto|yahoo|finmind`. `auto` tries
+Yahoo daily prices first, then FinMind. An explicitly selected provider is tried
+first; if it cannot cover the requested date range, retry the entire range with
+the other provider. Never splice partial price ranges from different providers.
+FinMind provides Taiwan catalogue, calendar, and raw financial-data capabilities;
+Yahoo's full fundamental snapshot fills available gaps. Field availability and
+semantics vary, so report unavailable fields instead of inferring values.
 
 Daily price limits are instrument-specific. Do not apply a blanket 10% rule
 to every ETF, leveraged fund, IPO or special instrument. Use the published
@@ -53,7 +62,7 @@ Distribution yield is not total return. Issuer disclosures are needed for
 holdings, NAV, distribution composition and leveraged/inverse product terms.
 Taiwan institutional buy/sell data is trading flow, not US 13F ownership.
 
-FinMind datasets and access restrictions:
+FinMind dataset and access documentation:
 https://finmind.github.io/tutor/TaiwanMarket/Technical/
 https://finmind.github.io/tutor/TaiwanMarket/Fundamental/
 https://finmind.github.io/tutor/TaiwanMarket/Chip/

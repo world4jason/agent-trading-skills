@@ -1,7 +1,7 @@
 # 台股廣度、產業與市場狀態
 
 先定義研究範圍：上市、上櫃或兩者，普通股/特別股/ETF 是否分開。
-FinMind 的歷史總覽必須確認交易狀態和資料覆蓋。對每檔取得同時點同口徑日線。
+台股歷史總覽必須確認交易狀態和資料覆蓋，價格來源遵守 `TAIWAN_MARKET.md` 的 provider policy。對每檔取得同時點同口徑日線。
 從股票池自行計算可驗證的上漲/下跌數、均線上方占比、新高低與趨勢參與度。
 每一項分母只包含達到該指標歷史長度的樣本，並列排除數；停牌/無行情不可補平價假裝交易。
 
@@ -29,7 +29,7 @@ rtk proxy .venv/bin/python scripts/taiwan_data.py dataset --name TaiwanStockFina
 
 `prices` 可接受裸代碼或經過市場驗證的 `.TW` / `.TWO`；`dataset` 使用裸字串代碼。
 回傳 envelope 的 `status` 必須為 `ok`，再讀 `data`、`warnings` 與來源資訊。
-空陣列是無資料，不是數值零。FinMind token 使用 `FINMIND_TOKEN` 環境變數。
+空陣列是無資料，不是數值零。使用需要憑證的 FinMind dataset 時，將 token 放在 `FINMIND_TOKEN` 環境變數。
 不要為了取得價格而要求使用者提供 token 到對話中。
 
 日線每列包含 `date,symbol,open,high,low,close,volume`；日期由舊到新，

@@ -1,12 +1,13 @@
 # 台股策略研究與回測
 
-先讀使用者策略與既有研究，保留假說/反證/實驗範圍。資料從 FinMind 主來源取得，
-Yahoo 價格補充需單獨標記基礎，基準需實際台股資料。下市/停牌、股利/分割、
+先讀使用者策略與既有研究，保留假說/反證/實驗範圍。資料來源依資料能力與使用者指定
+選擇；日線 provider 遵守 [台股市場與資料口徑](../TAIWAN_MARKET.md) 的整段 fallback 規則。
+下市/停牌、股利/分割、
 報表公布時間、回測當時股票池與實際可交易性都是研究假設，未處理者列限制。
 
 研究鏈：觀察 → 可否證機制 → 明確規則 → 所需資料 → 樣本內/外檢查 → 成本/制度檢查
 → 實際結果 → 原假說是否保留。不要為讓結果變好任意擴張參數/期間或省略失敗樣本。
-純概念綜合、策略設計與審查由當前 Codex 執行，以明確 JSON/YAML/Markdown 傳遞；
+純概念綜合、策略設計與審查由目前使用的 AI agent 執行，以明確 JSON/YAML/Markdown 傳遞；
 不啟動舊美股 orchestrator 或 Claude CLI。
 
 如果執行回測，使用原有可用引擎前先驗證其輸入/委託模型能表達台股整數股、
@@ -29,7 +30,7 @@ rtk proxy .venv/bin/python scripts/taiwan_data.py dataset --name TaiwanStockFina
 
 `prices` 可接受裸代碼或經過市場驗證的 `.TW` / `.TWO`；`dataset` 使用裸字串代碼。
 回傳 envelope 的 `status` 必須為 `ok`，再讀 `data`、`warnings` 與來源資訊。
-空陣列是無資料，不是數值零。FinMind token 使用 `FINMIND_TOKEN` 環境變數。
+空陣列是無資料，不是數值零。使用需要憑證的 FinMind dataset 時，將 token 放在 `FINMIND_TOKEN` 環境變數。
 不要為了取得價格而要求使用者提供 token 到對話中。
 
 日線每列包含 `date,symbol,open,high,low,close,volume`；日期由舊到新，

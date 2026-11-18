@@ -61,7 +61,7 @@ def calculate_liquidity(daily_prices: list[dict], current_price: float) -> dict:
     for d in recent_20:
         vol = d.get("volume", 0)
         close = d.get("close", 0)
-        if vol > 0 and close > 0:
+        if vol >= 0 and close > 0:
             dollar_volumes.append(vol * close)
 
     if dollar_volumes:
