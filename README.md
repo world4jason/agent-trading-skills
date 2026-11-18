@@ -2,6 +2,8 @@
 
 Trading skills for Codex, Claude, OpenCode, and other AI agents.
 
+**English** · [繁體中文（台灣）](README.zh-TW.md) · [日本語](README.ja.md)
+
 ## About this fork
 
 This fork builds on [TraderMonty's Claude Trading Skills](https://github.com/tradermonty/claude-trading-skills).
