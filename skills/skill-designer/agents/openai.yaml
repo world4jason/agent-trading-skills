@@ -1,4 +1,4 @@
 interface:
-  display_name: "設計台股研究 skills"
-  short_description: "Taiwan stocks and ETFs: skill-designer"
-  default_prompt: "使用 $skill-designer，設計台股研究 skills。"
+  display_name: "skill-designer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $skill-designer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

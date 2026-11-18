@@ -6,15 +6,13 @@ import json
 import os
 from pathlib import Path
 import sys
-import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def install(destination):
     destination = Path(destination).expanduser().absolute()
-    entries = yaml.safe_load((ROOT / "skills-index.yaml").read_text())["skills"]
-    names = [entry["id"] for entry in entries]
+    names = sorted([*json.loads((ROOT / "TAIWAN_SKILL_MAP.json").read_text())["active"], "trading-skills-navigator"])
     if len(names) != len(set(names)) or any(not isinstance(n, str) or not n or Path(n).name != n or n in (".", "..") for n in names):
         raise ValueError("Invalid skill index")
     previous = {}

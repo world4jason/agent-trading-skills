@@ -1,38 +1,202 @@
 ---
 name: parabolic-short-trade-planner
-description: 研究台股急漲反轉風險。用實際台股價格與流動性評估反轉，若使用者要求空方計畫需先驗證借券/融券標的、券源與規則；不提交訂單，不預設股票皆可放空。
-  適用於台灣上市、上櫃股票與 ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Screen US equities for parabolic exhaustion patterns and generate conditional pre-market short plans, then evaluate intraday trigger fires from live 5-min bars. Phase 1 daily 5-factor scorer (MA extension / acceleration / volume climax / range expansion / liquidity), Phase 2 per-candidate plans for ORL break / first-red 5-min / VWAP fail with explicit borrow / SSR / manual-confirmation gating, Phase 3 one-shot intraday FSM that detects trigger fires and resolves concrete share counts. Covers Phase 1 + Phase 2 + Phase 3.
 ---
 
-# 研究台股急漲反轉風險
+## Overview
 
-用實際台股價格與流動性評估反轉，若使用者要求空方計畫需先驗證借券/融券標的、券源與規則；不提交訂單，不預設股票皆可放空。
+Generate Qullamaggie-style Parabolic Short watchlists and conditional
+pre-market plans for US equities. The skill never sends orders. It emits
+JSON + Markdown that a human reviews against their broker before entry.
 
-## 執行流程
+Three phases:
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-planning.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+- **Phase 1 (`screen_parabolic.py`)**: pulls EOD bars + company profile
+  from FMP, applies hard invalidation rules (mode-aware), scores
+  survivors on 5 factors (weights 30/25/20/15/10), and assigns A/B/C/D
+  grades.
+- **Phase 2 (`generate_pre_market_plan.py`)**: takes the Phase 1 JSON,
+  filters by `--tradable-min-grade` (default `B`), checks Alpaca short
+  inventory (or `ManualBrokerAdapter`), evaluates SEC Rule 201 SSR
+  state from the inherited prior-day close, and renders three trigger
+  plans per candidate.
+- **Phase 3 (`monitor_intraday_trigger.py`)**: reads the Phase 2 plan,
+  fetches 5-min bars (Alpaca live or fixture), walks each plan's FSM
+  forward by one step, persists per-plan state, and writes an
+  `intraday_monitor` JSON with `state`, `entry_actual`, `stop_actual`,
+  and `shares_actual` (when triggered). One-shot — trader runs it
+  every 1–5 min via `watch` or cron; replay-deterministic so re-runs
+  are byte-identical.
 
-## 方法論資源
+## When to Use
 
-- [broker_capability_matrix.md](references/broker_capability_matrix.md)
-- [intraday_trigger_playbook.md](references/intraday_trigger_playbook.md)
-- [parabolic_short_methodology.md](references/parabolic_short_methodology.md)
-- [short_invalidation_rules.md](references/short_invalidation_rules.md)
-- [short_risk_management.md](references/short_risk_management.md)
-- [smoke_test_runbook.md](references/smoke_test_runbook.md)
+Invoke this skill when the user wants to:
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+- Build a daily Parabolic Short watchlist from S&P 500 (or a custom CSV).
+- Translate a watchlist into pre-market trade plans with explicit
+  borrow / SSR / state-cap gating.
+- Audit a candidate's blocking vs advisory manual-confirmation reasons
+  before placing an order at Alpaca.
 
-## 自動選股入口
+Do NOT invoke for:
 
-從本專案根目錄執行：
+- Long-side momentum screening — use vcp-screener or canslim-screener.
+- 1-minute / sub-minute intraday signals — Phase 3 evaluates 5-min
+  bars only.
+- Live order routing — this skill is detection-only by design;
+  Phase 3 emits a `triggered` state with concrete entry/stop/share
+  count, but the trader fires the order manually.
 
-```bash
-.venv/bin/python scripts/taiwan_screen.py --strategy parabolic --symbols 2330 6488 0050 --start 2023-01-01 --end 2024-12-31 --output /tmp/taiwan-screen.json
-```
+## Prerequisites
 
-日期與標的是操作範例，依使用者要求調整。全市場改用 `--all`；要限制上市／上櫃或股票／ETF，可用 `--exchange`、`--kind`。讀 [引擎規則與資料限制](../../TAIWAN_ENGINES.md)，完整保留未評估項目；不得把部分條件通過說成完整方法通過。
+- **FMP API key:** Required. Set `FMP_API_KEY` or pass `--api-key` for the Phase 1 screener.
+- **Alpaca API keys:** Optional. Set `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` for live borrow checks in Phase 2 and for live 5-minute bars in Phase 3. Without them Phase 2 falls back to `ManualBrokerAdapter` and marks candidates `watch_only`. Offline runs: Phase 1 `screen_parabolic.py --dry-run --fixture <path>`, Phase 2 `generate_pre_market_plan.py --broker none`, Phase 3 `monitor_intraday_trigger.py --bars-source fixture --bars-fixture <path>`.
+- **Python:** 3.9+ with `pandas-market-calendars==5.2.2` and `requests>=2.31.0` (see `requirements.txt`).
+
+## Workflow
+
+### Phase 1 — daily screener
+
+1. Confirm `FMP_API_KEY` is set (env var or `--api-key`).
+2. Run with the safer-by-default mode:
+   ```bash
+   python3 skills/parabolic-short-trade-planner/scripts/screen_parabolic.py \
+     --mode safe_largecap --as-of 2026-04-30 --output-dir reports/
+   ```
+3. Inspect `reports/parabolic_short_<date>.md` — the watchlist is grouped
+   by grade (A→D).
+4. Promote interesting names to Phase 2.
+
+For small-cap blow-offs, switch to `--mode classic_qm` (looser market
+cap and ADV floors, higher 5-day ROC threshold).
+
+For testing without the API, run `--dry-run --fixture <path>` against a
+JSON fixture (one is shipped at `scripts/tests/fixtures/dry_run_minimal.json`).
+
+### Phase 2 — pre-market plan generator
+
+1. Optional: set `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` for live borrow
+   checks. Without them the planner falls back to `ManualBrokerAdapter`,
+   which marks every candidate as `borrow_inventory_unavailable` /
+   `plan_status: watch_only`.
+2. Run:
+   ```bash
+   python3 skills/parabolic-short-trade-planner/scripts/generate_pre_market_plan.py \
+     --candidates-json reports/parabolic_short_2026-04-30.json \
+     --account-size 100000 --risk-bps 50 --output-dir reports/
+   ```
+3. Output: `reports/parabolic_short_plan_<date>.json`. Each plan contains
+   three entry plans (5min ORL break, first red 5-min, VWAP fail) with
+   `entry_hint` / `stop_hint` formula strings (no baked-in shares — the
+   trader computes shares at trigger time from the `shares_formula`).
+
+### Phase 3 — intraday trigger monitor
+
+1. Confirm `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` are set (Phase 3
+   uses Alpaca market data; `data.alpaca.markets` works for both
+   paper and live accounts).
+2. During US regular session, run one-shot per cadence — typical is
+   every 60 s during the first 30 min, then every 5 min:
+   ```bash
+   python3 skills/parabolic-short-trade-planner/scripts/monitor_intraday_trigger.py \
+     --plans-json reports/parabolic_short_plan_2026-05-05.json \
+     --bars-source alpaca \
+     --state-dir state/parabolic_short/ \
+     --output-dir reports/
+   ```
+   Or wrap in `watch -n 60 'python3 ...'` / cron.
+3. Output: `reports/parabolic_short_intraday_<date>.json` lists every
+   monitored plan with `state` (`armed` / `triggered` / `invalidated`
+   / FSM-specific), bar-derived transition timestamps, and
+   `size_recipe_resolved` (concrete `shares_actual`) when triggered.
+4. For testing without the API, use `--bars-source fixture
+   --bars-fixture <path>` against a JSON fixture
+   (`scripts/tests/fixtures/intraday_bars/`).
+
+Phase 3 trigger detection is not an order instruction. Before any manual
+short entry, confirm borrow/locate availability, SEC Rule 201 SSR state,
+broker short-sale controls, and the broker's current intraday margin or
+day-trading controls. FINRA replaced the old pattern-day-trader day-count
+and $25,000 minimum-equity requirements with intraday margin standards
+effective 2026-06-04, with broker phase-in allowed through 2027-10-20.
+
+Phase 3 is **idempotent**: each run replays the full session bars
+from open up to `now_et` (or `--now-et` override), so re-running
+during the same minute produces the same state. `prior_state` is
+used only for diff/notification display; it never advances the FSM.
+
+### Reviewing a plan before entry
+
+Read three top-level fields per ticker:
+
+- `plan_status`: `actionable` (manual gates can be cleared) or
+  `watch_only` (hard blockers — borrow unavailable or SSR active).
+- `blocking_manual_reasons`: must all be resolved before pulling the
+  trigger.
+- `advisory_manual_reasons`: heads-up only, e.g.
+  `manual_locate_required` (always set), `warning:too_early_to_short`,
+  `warning:recent_earnings_catalyst` (last earnings within
+  `--earnings-catalyst-window-days`, default 10 trading days — flag the
+  move as event-driven rather than pure technical blow-off).
+
+### Earnings-aware screening
+
+Phase 1 fetches the FMP earnings calendar once per run (single call,
+not per-symbol) and emits two earnings-aware checks:
+
+- `--exclude-earnings-within-days` (default 2 calendar days, forward) —
+  hard invalidation when next earnings is within the window. Matches
+  the legacy `earnings_blackout_days` semantic.
+- `--earnings-catalyst-window-days` (default 10 trading days, backward)
+  — soft warning `recent_earnings_catalyst` when last earnings is
+  within the window. Routes to Phase 2 as an advisory manual reason
+  without forcing `trade_allowed_without_manual: false`.
+
+Per-candidate output exposes `last_earnings_date`, `next_earnings_date`,
+`trading_days_since_earnings` (TRADING days), `earnings_within_days`
+(CALENDAR days, forward), `earnings_blackout_days` (configured threshold),
+and `earnings_in_blackout_window`. The legacy `earnings_within_2d` is
+kept for backward compatibility.
+
+Top-level dates: `as_of` is the planning date (Phase 2 contract — never
+mutate); `run_date` mirrors it; `market_data_as_of` is the latest bar
+date used for technical metrics (differs from `as_of` on weekend runs).
+
+## Exchange Calendar and Replay
+
+Install `requirements.txt` before running the planner. Phase 1 `--as-of` uses
+strict `YYYY-MM-DD`, filters bars beyond that ceiling, and counts earnings age
+with XNYS sessions. Phase 3 uses actual holidays and early closes; the close
+boundary is exclusive. Historical dates are accepted only with Phase 1
+`--dry-run` fixture data; live universe and profile endpoints are not PIT and
+therefore fail closed for a non-current `--as-of`.
+
+## Output Format
+
+Phase 1 JSON: `parabolic_short_<as_of>.json` (schema_version 1.0).
+Phase 2 JSON: `parabolic_short_plan_<as_of>.json` (schema_version 1.0).
+Phase 3 JSON: `parabolic_short_intraday_<as_of>.json` (schema_version 1.0,
+phase = `intraday_monitor`).
+The contract is pinned by `tests/test_schema_contract.py` plus
+`tests/test_monitor_intraday_smoke.py` for Phase 3.
+
+## Resources
+
+- `references/parabolic_short_methodology.md` — Qullamaggie's 3-trigger
+  framework and exhaustion signals.
+- `references/short_invalidation_rules.md` — mode-aware exclusion rules.
+- `references/short_risk_management.md` — Rule 201, ETB vs HTB, locate.
+- `references/intraday_trigger_playbook.md` — detail on each trigger
+  type, the FSM transitions Phase 3 implements, and same-bar tie-break
+  semantics.
+- `references/broker_capability_matrix.md` — what each broker exposes
+  through its API for short inventory.
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

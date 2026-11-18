@@ -56,13 +56,13 @@ def test_cli_writes_failure_json(tmp_path):
     assert json.loads(dest.read_text())["status"] == "error"
 
 
-def test_all_old_entrypoints_use_taiwan_cli():
+def test_original_entrypoints_are_not_redirected_to_experimental_cli():
     root=Path(__file__).resolve().parents[2]
     for relative in json.loads((root/"TAIWAN_ENGINE_MAP.json").read_text()):
         process=subprocess.run([sys.executable,str(root/"skills"/relative),"--help"],capture_output=True,text=True)
         assert process.returncode == 0, process.stderr
-        assert "--exchange" in process.stdout
-        assert "--api-key" not in process.stdout
+        assert "--exchange" not in process.stdout
+        assert "taiwan_screen" not in process.stdout
 
 
 def test_runner_keeps_provider_preference_and_financial_snapshot(providers, monkeypatch):

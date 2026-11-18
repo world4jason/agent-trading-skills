@@ -7,11 +7,13 @@ directories. This repository does not claim client-specific testing for them.
 
 Taiwan tools cover TWSE/TPEX stocks and ETFs. `scripts/market_scan.py` also covers US exchange-listed stocks and ETFs; read [cross-market scan](CROSS_MARKET_SCAN.md). No futures/options contracts, brokerage orders, US tax workflows or MT5.
 
-Read [Taiwan market conventions](TAIWAN_MARKET.md). Actual automatic screener
-entrypoints and supported checks are documented in [TAIWAN_ENGINES.md](TAIWAN_ENGINES.md).
-Use `scripts/taiwan_screen.py` or the mapped legacy entrypoints. Other upstream US
-scripts are retained for reference and are not Taiwan executors. Do not run US
-market-regime jobs, FMP pipelines or brokerage integrations merely because a file exists.
+Original skill methods, workflows and CLI entrypoints are the default. Read
+[the additive data guide](UPSTREAM_DATA_EXTENSION.md) and [Taiwan conventions](TAIWAN_MARKET.md).
+Original US FMP/FINVIZ pipelines retain their credentials and market assumptions.
+Yahoo/FinMind Taiwan tools are supplemental; not every original CLI has Taiwan
+source/calendar/currency integration. Do not silently redirect it to
+`scripts/taiwan_screen.py` or `scripts/market_scan.py`: those remain experimental.
+Installation does not authorize broker execution or workflows outside the user's scope.
 
 Screen and price commands accept `--provider auto|yahoo|finmind`. `auto` tries
 Yahoo daily prices first, then FinMind. An explicitly selected provider is tried

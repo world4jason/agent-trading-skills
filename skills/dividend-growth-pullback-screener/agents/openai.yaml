@@ -1,4 +1,4 @@
 interface:
-  display_name: "尋找台股股利成長與回檔候選"
-  short_description: "Taiwan stocks and ETFs: dividend-growth-pullback-screener"
-  default_prompt: "使用 $dividend-growth-pullback-screener，尋找台股股利成長與回檔候選。"
+  display_name: "dividend-growth-pullback-screener"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $dividend-growth-pullback-screener with its original method; apply the Taiwan data extension when the requested market is Taiwan."

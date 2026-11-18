@@ -1,4 +1,4 @@
 interface:
-  display_name: "審查台股策略設計"
-  short_description: "Taiwan stocks and ETFs: edge-strategy-reviewer"
-  default_prompt: "使用 $edge-strategy-reviewer，審查台股策略設計。"
+  display_name: "edge-strategy-reviewer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $edge-strategy-reviewer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

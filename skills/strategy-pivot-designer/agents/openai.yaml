@@ -1,4 +1,4 @@
 interface:
-  display_name: "檢視台股策略研究是否停滯"
-  short_description: "Taiwan stocks and ETFs: strategy-pivot-designer"
-  default_prompt: "使用 $strategy-pivot-designer，檢視台股策略研究是否停滯。"
+  display_name: "strategy-pivot-designer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $strategy-pivot-designer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

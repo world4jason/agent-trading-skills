@@ -1,26 +1,223 @@
 ---
 name: market-top-detector
-description: 檢查台股高檔風險。檢查廣度背離、趨勢、成交量與已取得的情緒指標；沒有台股對應的美國情緒成分標缺資料，不重配權重後冒稱原模型分數。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Assesses heuristic market top risk using O'Neil Distribution Days, Minervini Leading Stock Deterioration, and Monty Defensive Sector Rotation. Generates a 0-100 composite score with risk zone classification. Use when user asks about market top risk, distribution days, defensive rotation, leadership breakdown, or whether to reduce equity exposure. Focuses on 2-8 week tactical timing signals for 10-20% corrections.
 ---
 
-# 檢查台股高檔風險
+# Market Top Detector Skill
 
-檢查廣度背離、趨勢、成交量與已取得的情緒指標；沒有台股對應的美國情緒成分標缺資料，不重配權重後冒稱原模型分數。
+## Purpose
 
-## 執行流程
+Assess heuristic market top risk using a 6-component scoring system (0-100). Integrates three market risk methodologies:
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-breadth.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+1. **O'Neil** - Distribution Day accumulation (institutional selling)
+2. **Minervini** - Leading stock deterioration pattern
+3. **Monty** - Defensive sector rotation signal
 
-## 方法論資源
+Unlike the Bubble Detector (macro/multi-month evaluation), this skill focuses on **tactical 2-8 week timing signals** that precede 10-20% market corrections.
 
-- [distribution_day_guide.md](references/distribution_day_guide.md)
-- [historical_tops.md](references/historical_tops.md)
-- [market_top_methodology.md](references/market_top_methodology.md)
-- [point_in_time_evaluation.md](references/point_in_time_evaluation.md)
+## Score interpretation
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+Treat the 0-100 composite as a **heuristic risk score**, not an estimated event
+probability. A score of 70 does not mean a 70% chance of a top. Risk-budget
+percentages are policy heuristics, not measured outcome frequencies.
+Historical patterns are retrospective estimates, not point-in-time evidence.
+Report **no comparable episode** when any component is unavailable/invalid or
+nearest-pattern weighted RMS exceeds 15 points. This tolerance is a predeclared
+heuristic, not an empirically validated similarity threshold.
+Follow [the point-in-time evaluation protocol](references/point_in_time_evaluation.md)
+before making calibration claims. No measured calibration results are supplied.
+
+## When to Use This Skill
+
+**English:**
+- User asks "Is the market topping?" or "Are we near a top?"
+- User notices distribution days accumulating
+- User observes defensive sectors outperforming growth
+- User sees leading stocks breaking down while indices hold
+- User asks about reducing equity exposure timing
+- User wants to assess correction risk for the next 2-8 weeks
+
+**Japanese:**
+- 「天井が近い？」「今は利確すべき？」
+- ディストリビューションデーの蓄積を懸念
+- ディフェンシブセクターがグロースをアウトパフォーム
+- 先導株が崩れ始めているが指数はまだ持ちこたえている
+- エクスポージャー縮小のタイミング判断
+- 今後2〜8週間の調整リスクを評価したい
+
+## Prerequisites
+
+**Required:**
+- **FMP API Key:** Set `$FMP_API_KEY` environment variable or pass `--api-key`. Free tier sufficient (~33 API calls per execution).
+- **WebSearch Access:** Required to collect S&P 500 breadth (50DMA %) and CBOE Put/Call ratio data.
+
+**Optional:**
+- **Margin Debt Data:** Enhances sentiment scoring but typically 1-2 months lagged.
+- **VIX Term Structure:** Auto-detected from FMP API if VIX3M quote available; manual override via `--vix-term`.
+
+**Data Freshness:** All manually collected data should be from the most recent 3 business days for accurate analysis.
+
+## Difference from Bubble Detector
+
+| Aspect | Market Top Detector | Bubble Detector |
+|--------|-------------------|-----------------|
+| Timeframe | 2-8 weeks | Months to years |
+| Target | 10-20% correction | Bubble collapse (30%+) |
+| Methodology | O'Neil/Minervini/Monty | Minsky/Kindleberger |
+| Data | Price/Volume + Breadth | Valuation + Sentiment + Social |
+| Score Range | 0-100 composite | 0-15 points |
+
+---
+
+## Execution Workflow
+
+### Phase 1: Data Collection via WebSearch
+
+Before running the Python script, collect the following data using WebSearch.
+**Data Freshness Requirement:** All data must be from the most recent 3 business days. Stale data degrades analysis quality.
+
+```
+1. S&P 500 Breadth (200DMA above %)
+   AUTO-FETCHED from TraderMonty CSV (no WebSearch needed)
+   The script fetches this automatically from GitHub Pages CSV data.
+   Override: --breadth-200dma [VALUE] to use a manual value instead.
+   Disable: --no-auto-breadth to skip auto-fetch entirely.
+
+2. [REQUIRED] S&P 500 Breadth (50DMA above %)
+   Valid range: 20-100
+   Primary search: "S&P 500 percent stocks above 50 day moving average"
+   Fallback: "market breadth 50dma site:barchart.com"
+   Direct fallback when search snippets are poor: fetch `https://www.barchart.com/stocks/quotes/$S5FI/overview` and extract the embedded `lastPrice` / `tradeTime` for “S&P 500 Stocks Above 50-Day Average”.
+   Record the data date
+
+3. [REQUIRED] CBOE Equity Put/Call Ratio
+   Valid range: 0.30-1.50
+   Primary search: "CBOE equity put call ratio today"
+   Fallback: "CBOE total put call ratio current"
+   Fallback: "put call ratio site:cboe.com"
+   Direct fallback when Cboe CSV endpoints are stale: fetch `https://ycharts.com/indicators/cboe_equity_put_call_ratio` and parse the “Last Value” / “Latest Period” table fields. Treat this as a secondary source and cite it in freshness notes.
+   Record the data date
+
+4. [OPTIONAL] VIX Term Structure
+   Values: steep_contango / contango / flat / backwardation
+   Primary search: "VIX VIX3M ratio term structure today"
+   Fallback: "VIX futures term structure contango backwardation"
+   Note: Auto-detected from FMP API if VIX3M quote available.
+   CLI --vix-term overrides auto-detection.
+
+5. [OPTIONAL] Margin Debt YoY %
+   Primary search: "FINRA margin debt latest year over year percent"
+   Fallback: "NYSE margin debt monthly"
+   Note: Typically 1-2 months lagged. Record the reporting month.
+```
+
+### Phase 2: Execute Python Script
+
+Run the script with collected data as CLI arguments:
+
+```bash
+python3 skills/market-top-detector/scripts/market_top_detector.py \
+  --api-key $FMP_API_KEY \
+  --breadth-50dma [VALUE] --breadth-50dma-date [YYYY-MM-DD] \
+  --put-call [VALUE] --put-call-date [YYYY-MM-DD] \
+  --vix-term [steep_contango|contango|flat|backwardation] \
+  --margin-debt-yoy [VALUE] --margin-debt-date [YYYY-MM-DD] \
+  --output-dir reports/ \
+  --context "Consumer Confidence=[VALUE]" "Gold Price=[VALUE]"
+# 200DMA breadth is auto-fetched from TraderMonty CSV.
+# Override with --breadth-200dma [VALUE] if needed.
+# Disable with --no-auto-breadth to skip auto-fetch.
+```
+
+The script will:
+1. Fetch S&P 500, QQQ, VIX quotes and history from FMP API
+2. Fetch Leading ETF (ARKK, WCLD, IGV, XBI, SOXX, SMH, KWEB, TAN) data
+3. Fetch Sector ETF (XLU, XLP, XLV, VNQ, XLK, XLC, XLY) data
+4. Calculate all 6 components
+5. Generate composite score and reports
+
+### Phase 3: Present Results
+
+Present the generated Markdown report to the user, highlighting:
+- Composite score and risk zone
+- Data freshness warnings (if any data older than 3 days)
+- Strongest warning signal (highest component score)
+- Historical comparison (closest past top pattern)
+- What-if scenarios (sensitivity to key changes)
+- Recommended actions based on risk zone
+- Follow-Through Day status (if applicable)
+- Delta vs previous run (if prior report exists)
+
+---
+
+## 6-Component Scoring System
+
+| # | Component | Weight | Data Source | Key Signal |
+|---|-----------|--------|-------------|------------|
+| 1 | Distribution Day Count | **25%** | FMP API | Institutional selling in last 25 trading days |
+| 2 | Leading Stock Health | **20%** | FMP API | Growth ETF basket deterioration |
+| 3 | Defensive Sector Rotation | **15%** | FMP API | Defensive vs Growth relative performance |
+| 4 | Market Breadth Divergence | **15%** | Auto (CSV) + WebSearch | 200DMA (auto) / 50DMA (WebSearch) breadth vs index level |
+| 5 | Index Technical Condition | **15%** | FMP API | MA structure, failed rallies, lower highs |
+| 6 | Sentiment & Speculation | **10%** | FMP + WebSearch | VIX, Put/Call, term structure |
+
+## Risk Zone Mapping
+
+| Score | Zone | Risk Budget | Action |
+|-------|------|-------------|--------|
+| 0-20 | Green (Normal) | 100% | Normal operations |
+| 21-40 | Yellow (Early Warning) | 80-90% | Tighten stops, reduce new entries |
+| 41-60 | Orange (Elevated Risk) | 60-75% | Profit-taking on weak positions |
+| 61-80 | Red (High Risk) | 40-55% | Aggressive profit-taking |
+| 81-100 | Critical (Very High Risk) | 20-35% | Maximum defense, hedging |
+
+---
+
+## Exchange Calendar and Replay
+
+Install `requirements.txt` before running the detector. Freshness uses XNYS
+sessions rather than weekdays. `--as-of YYYY-MM-DD` is accepted for the live
+evaluation date, but historical live replay fails closed because the current
+quote endpoints are not point-in-time sources.
+
+## API Requirements
+
+**Required:** FMP API key (free tier sufficient: ~33 calls per execution)
+**Optional:** WebSearch data for breadth and sentiment (improves accuracy)
+
+## Output Files
+
+- JSON: `market_top_YYYY-MM-DD_HHMMSS.json`
+- Markdown: `market_top_YYYY-MM-DD_HHMMSS.md`
+
+## Reference Documents
+
+### `references/market_top_methodology.md`
+- Full methodology with O'Neil, Minervini, and Monty frameworks
+- Component scoring details and thresholds
+- Historical validation notes
+
+### `references/distribution_day_guide.md`
+- Detailed O'Neil Distribution Day rules
+- Stalling day identification
+- Follow-Through Day (FTD) mechanics
+
+### `references/historical_tops.md`
+- Analysis of 2000, 2007, 2018, 2022 market tops
+- Component score patterns during historical tops
+- Lessons learned and retrospective illustrative estimates
+
+### When to Load References
+- **First use:** Load `market_top_methodology.md` for full framework understanding
+- **Distribution day questions:** Load `distribution_day_guide.md`
+- **Historical context:** Load `historical_tops.md`
+- **Regular execution:** References not needed - script handles scoring
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

@@ -1,4 +1,4 @@
 interface:
-  display_name: "評估台股總經環境"
-  short_description: "Taiwan stocks and ETFs: macro-regime-detector"
-  default_prompt: "使用 $macro-regime-detector，評估台股總經環境。"
+  display_name: "macro-regime-detector"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $macro-regime-detector with its original method; apply the Taiwan data extension when the requested market is Taiwan."

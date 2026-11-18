@@ -1,4 +1,4 @@
 interface:
-  display_name: "分析台股與 ETF 技術走勢"
-  short_description: "Taiwan stocks and ETFs: technical-analyst"
-  default_prompt: "使用 $technical-analyst，分析台股與 ETF 技術走勢。"
+  display_name: "technical-analyst"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $technical-analyst with its original method; apply the Taiwan data extension when the requested market is Taiwan."

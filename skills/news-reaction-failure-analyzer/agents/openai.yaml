@@ -1,4 +1,4 @@
 interface:
-  display_name: "分析台股對消息反應失敗"
-  short_description: "Taiwan stocks and ETFs: news-reaction-failure-analyzer"
-  default_prompt: "使用 $news-reaction-failure-analyzer，分析台股對消息反應失敗。"
+  display_name: "news-reaction-failure-analyzer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $news-reaction-failure-analyzer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

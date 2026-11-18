@@ -17,15 +17,6 @@ same output, so the CLI can be smoke-tested without an API key.
 
 from __future__ import annotations
 
-# The executable entrypoint is Taiwan-native; imported upstream calculators remain available.
-if __name__ == "__main__":
-    import sys as _tw_sys
-    from pathlib import Path as _TwPath
-    _tw_sys.path.insert(0, str(_TwPath(__file__).resolve().parents[3] / "scripts"))
-    from taiwan_screen import main as _taiwan_main
-    raise SystemExit(_taiwan_main(default_strategy="parabolic"))
-
-
 import argparse
 import json
 import logging

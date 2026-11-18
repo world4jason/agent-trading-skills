@@ -1,4 +1,4 @@
 interface:
-  display_name: "回顧台股訊號結果"
-  short_description: "Taiwan stocks and ETFs: signal-postmortem"
-  default_prompt: "使用 $signal-postmortem，回顧台股訊號結果。"
+  display_name: "signal-postmortem"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $signal-postmortem with its original method; apply the Taiwan data extension when the requested market is Taiwan."

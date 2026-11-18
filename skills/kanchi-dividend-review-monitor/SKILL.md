@@ -1,25 +1,138 @@
 ---
 name: kanchi-dividend-review-monitor
-description: 追蹤台股股利研究清單。按已發布財報、營收與股利公告檢查原投資論點和檢視條件；稅務或配息組成未確認時不給確定稅後報酬。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Monitor dividend portfolios with Kanchi-style forced-review triggers (T1-T5) and convert anomalies into OK/WARN/REVIEW states without auto-selling. Use when users ask for 減配検知, 8-Kガバナンス監視, 配当安全性モニタリング, REVIEWキュー自動化, or periodic dividend risk checks.
 ---
 
-# 追蹤台股股利研究清單
+# Kanchi Dividend Review Monitor
 
-按已發布財報、營收與股利公告檢查原投資論點和檢視條件；稅務或配息組成未確認時不給確定稅後報酬。
+## Overview
 
-## 執行流程
+Detect abnormal dividend-risk signals and route them into a human review queue.
+Treat automation as anomaly detection, not automated trade execution.
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-dividend.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+## When to Use
 
-## 方法論資源
+Use this skill when the user needs:
+- Daily/weekly/quarterly anomaly detection for dividend holdings.
+- Forced review queueing for T1-T5 risk triggers.
+- 8-K/governance keyword scans tied to portfolio tickers.
+- Deterministic `OK/WARN/REVIEW` output before manual decision making.
 
-- [input-schema.md](references/input-schema.md)
-- [review-ticket-template.md](references/review-ticket-template.md)
-- [trigger-matrix.md](references/trigger-matrix.md)
+## Prerequisites
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+Provide normalized input JSON that follows:
+- `references/input-schema.md`
+
+If upstream data is unavailable, provide at least:
+- `ticker`
+- `instrument_type`
+- `dividend.latest_regular`
+- `dividend.prior_regular`
+
+## Non-Negotiable Rule
+
+Never auto-sell based only on machine triggers.
+Always create `WARN` or `REVIEW` evidence for human confirmation first.
+
+## State Machine
+
+- `OK`: no action.
+- `WARN`: add to next check cycle and pause optional adds.
+- `REVIEW`: immediate human review ticket + pause adds.
+
+Use `references/trigger-matrix.md` for trigger thresholds and actions.
+
+### Flat-dividend cadence caveat
+
+When T6 is driven only by `freeze_flag` / latest regular dividend equal to prior regular dividend, treat it as a `WARN` for cadence confirmation, not as proof of dividend deterioration. Many quarterly dividend payers repeat the same dividend for several quarters between annual raise cycles. In reports, phrase this as “confirm next dividend-growth cadence / pause optional adds until checked” and avoid implying a cut or broken thesis unless T1/T2/T3/T4/T5 evidence also supports escalation.
+
+## Monitoring Cadence
+
+- Daily:
+  - T1 dividend cut/suspension.
+  - T4 SEC filing keyword scan (8-K oriented).
+- Weekly:
+  - T3 proxy credit stress checks.
+- Quarterly:
+  - T2 coverage deterioration and T5 structural decline scoring.
+
+## Workflow
+
+### 1) Normalize input dataset
+
+Collect per ticker fields in one JSON document:
+- Dividend points (latest regular, prior regular, missing/zero flag).
+- Coverage fields (FCF or FFO or NII, dividends paid, ratio history).
+- Balance-sheet trend fields (net debt, interest coverage, buybacks/dividends).
+- Filing text snippets (especially recent 8-K or equivalent alert text).
+- Operations trend fields (revenue CAGR, margin trend, guidance trend).
+
+Use `references/input-schema.md` for field definitions
+and sample payload.
+
+### 2) Run the rule engine
+
+Run:
+
+```bash
+python3 skills/kanchi-dividend-review-monitor/scripts/build_review_queue.py \
+  --input /path/to/monitor_input.json \
+  --output-dir reports/
+```
+
+The script maps each ticker to `OK/WARN/REVIEW` based on T1-T5.
+Output files are saved to the specified directory with dated filenames (e.g., `review_queue_20260227.json` and `.md`).
+
+### 3) Prioritize and deduplicate
+
+If multiple triggers fire:
+- Keep all findings for audit trail.
+- Escalate final state to highest severity only.
+- Store trigger reasons as single-line evidence.
+
+### 4) Generate human review tickets
+
+For each `REVIEW` ticker, include:
+- Trigger IDs and evidence.
+- Suspected failure mode.
+- Required manual checks for next decision.
+
+Use `references/review-ticket-template.md` output format.
+
+## SEC Filing Guardrail
+
+When implementing live SEC fetchers:
+- Include a compliant `User-Agent` string (name + email).
+- Use caching and throttling.
+- Respect SEC fair-access guidance.
+- In scheduled portfolio reviews where upstream filing snippets are empty, use SEC `company_tickers.json` plus `https://data.sec.gov/submissions/CIK##########.json` to enumerate recent 8-K / 8-K/A filings for each holding, then scan primary filing documents for the T4 keyword family (`Item 4.02`, non-reliance, restatement, material weakness, SEC investigation, subpoena, going concern, auditor resignation, internal control). Record the scan window, recent 8-K count, and whether hits were found. Treat "no keyword hits" as a narrow T4 scan result, not a full governance clearance.
+
+## Output Contract
+
+Always return:
+1. Queue JSON with summary counts and ticker-level findings.
+2. Markdown dashboard for quick triage.
+3. List of immediate `REVIEW` tickets.
+
+## Multi-Skill Handoff
+
+- Consume ticker universe and baseline assumptions from `kanchi-dividend-sop`.
+- Feed `REVIEW` results back to `kanchi-dividend-sop` for re-underwriting and position-size review.
+- Share account-type context with `kanchi-dividend-us-tax-accounting` when risk events imply account relocation decisions.
+
+## Resources
+
+- `scripts/build_review_queue.py`: local rule engine for T1-T5.
+- `scripts/tests/test_build_review_queue.py`: unit tests for T1-T5 and report rendering.
+- `references/trigger-matrix.md`: trigger definitions, cadence, and actions.
+- `references/input-schema.md`: normalized input schema and sample JSON.
+- `references/review-ticket-template.md`: standardized manual-review ticket layout.
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

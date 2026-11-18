@@ -1,4 +1,4 @@
 interface:
-  display_name: "從台股資料提出優勢研究題目"
-  short_description: "Taiwan stocks and ETFs: edge-candidate-agent"
-  default_prompt: "使用 $edge-candidate-agent，從台股資料提出優勢研究題目。"
+  display_name: "edge-candidate-agent"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $edge-candidate-agent with its original method; apply the Taiwan data extension when the requested market is Taiwan."

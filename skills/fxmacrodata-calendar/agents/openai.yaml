@@ -1,4 +1,4 @@
 interface:
-  display_name: "檢查台股相關匯率與總經事件"
-  short_description: "Taiwan stocks and ETFs: fxmacrodata-calendar"
-  default_prompt: "使用 $fxmacrodata-calendar，檢查台股相關匯率與總經事件。"
+  display_name: "fxmacrodata-calendar"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $fxmacrodata-calendar with its original method; apply the Taiwan data extension when the requested market is Taiwan."

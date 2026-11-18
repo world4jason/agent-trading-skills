@@ -1,4 +1,4 @@
 interface:
-  display_name: "從台股紀錄提出可否證假說"
-  short_description: "Taiwan stocks and ETFs: trade-hypothesis-ideator"
-  default_prompt: "使用 $trade-hypothesis-ideator，從台股紀錄提出可否證假說。"
+  display_name: "trade-hypothesis-ideator"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $trade-hypothesis-ideator with its original method; apply the Taiwan data extension when the requested market is Taiwan."

@@ -1,4 +1,4 @@
 interface:
-  display_name: "整理影響台股的總經日曆"
-  short_description: "Taiwan stocks and ETFs: economic-calendar-fetcher"
-  default_prompt: "使用 $economic-calendar-fetcher，整理影響台股的總經日曆。"
+  display_name: "economic-calendar-fetcher"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $economic-calendar-fetcher with its original method; apply the Taiwan data extension when the requested market is Taiwan."

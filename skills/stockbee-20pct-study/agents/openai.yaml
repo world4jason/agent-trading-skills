@@ -1,4 +1,4 @@
 interface:
-  display_name: "研究台股大幅波動樣本"
-  short_description: "Taiwan stocks and ETFs: stockbee-20pct-study"
-  default_prompt: "使用 $stockbee-20pct-study，研究台股大幅波動樣本。"
+  display_name: "stockbee-20pct-study"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $stockbee-20pct-study with its original method; apply the Taiwan data extension when the requested market is Taiwan."

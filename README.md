@@ -13,7 +13,9 @@ This edition adds:
 
 - **Codex setup and runtime guidance**, with a local installer for the adapted skills.
 - **Agent-facing skill instructions** for use with Codex, Claude, OpenCode, and other compatible agents. Codex installation has been verified; other clients have not been independently validated in this fork.
-- **Taiwan TWSE/TPEX stocks and ETFs**, plus Taiwan/US batch screening with explicit data-coverage reports, Yahoo Finance and FinMind integration.
+- **Additive Taiwan data tools** for TWSE/TPEX stocks and ETFs (Yahoo Finance and FinMind), while keeping the original methods, workflows and CLI entrypoints. The separate Taiwan/US batch scanner remains experimental; it is not equivalent to every upstream pipeline.
+
+Read [the upstream data-extension contract](UPSTREAM_DATA_EXTENSION.md) for original sources, current wiring and remaining gaps.
 
 See [fork setup and differences](FORK_NOTES.md) for installation and data-source behavior,
 and [Taiwan/US scanning](CROSS_MARKET_SCAN.md) for the implemented screening scope.

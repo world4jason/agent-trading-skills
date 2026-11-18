@@ -1,25 +1,137 @@
 ---
 name: stockbee-episodic-pivot-analyzer
-description: 研究台股事件轉折。結合台股公告與量價斷點，檢查催化是否真新資訊、時間是否可交易與追價風險；營收公告不等於盈餘驚喜。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Analyze Stockbee-style Day 1 Episodic Pivot candidates from earnings, guidance raises, M&A, FDA/regulatory approvals, analyst actions, major contracts, product launches, short-squeeze catalysts, or theme/story events. Scores catalyst quality together with gap/range expansion, volume shock, neglect/revaluation context, liquidity, and risk to the EP-day low. Use when the user asks for EP candidates, episodic pivots, Day 1 catalyst trades, game-changing news reactions, delayed EP watchlists, or handoffs into PEAD monitoring.
 ---
 
-# 研究台股事件轉折
+# Stockbee Episodic Pivot Analyzer
 
-結合台股公告與量價斷點，檢查催化是否真新資訊、時間是否可交易與追價風險；營收公告不等於盈餘驚喜。
+Classify Day 1 Episodic Pivot (EP) candidates using both **catalyst quality** and **price/volume confirmation**. The skill is a candidate-quality analyzer, not an execution engine.
 
-## 執行流程
+## When to Use
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-events.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+- The user asks for Pradeep Bonde / Stockbee style EP candidates
+- The user provides earnings, guidance, M&A, FDA, analyst, contract, product, short-squeeze, or theme/news events
+- The user wants to separate `ACTIONABLE_DAY1` candidates from `DELAYED_EP_WATCH` names
+- The user wants to hand strong earnings/guidance EPs into `pead-screener`
+- The user wants to combine catalyst analysis with `stockbee-momentum-burst-screener` price/volume output
 
-## 方法論資源
+## Prerequisites
 
-- [catalyst_quality.md](references/catalyst_quality.md)
-- [ep_methodology.md](references/ep_methodology.md)
-- [handoff_rules.md](references/handoff_rules.md)
+- Python 3.10+
+- Optional: FMP API key for OHLCV enrichment
+- One of:
+  - Catalyst/events JSON
+  - `earnings-trade-analyzer` JSON output
+  - Catalyst JSON plus `stockbee-momentum-burst-screener` JSON enrichment
+- This skill does not fetch or discover news by itself. If the catalyst is not supplied, first gather the event/news context using the user's preferred news or research process.
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+## Workflow
+
+### Step 1: Prepare Candidate Inputs
+
+Use one or more of these input modes.
+
+**Mode A — Catalyst/event JSON:**
+
+```json
+{
+  "events": [
+    {
+      "symbol": "ABC",
+      "event_date": "2026-04-25",
+      "catalyst_type": "guidance_raise",
+      "headline": "ABC raises FY guidance after record demand",
+      "summary": "Management raised revenue and EPS guidance."
+    }
+  ]
+}
+```
+
+**Mode B — Earnings pipeline:**
+
+Use the JSON produced by `earnings-trade-analyzer`.
+
+**Mode C — Price/volume enrichment:**
+
+Pass a `stockbee-momentum-burst-screener` JSON report to reuse day-gain, volume, close-location, and risk-distance fields.
+
+### Step 2: Run the Analyzer
+
+```bash
+# Catalyst JSON + offline OHLCV
+python3 skills/stockbee-episodic-pivot-analyzer/scripts/analyze_ep.py \
+  --events-json data/catalysts.json \
+  --prices-json data/daily_ohlcv.json \
+  --output-dir reports/
+
+# Earnings pipeline input
+python3 skills/stockbee-episodic-pivot-analyzer/scripts/analyze_ep.py \
+  --earnings-json reports/earnings_trade_analyzer_YYYY-MM-DD_HHMMSS.json \
+  --output-dir reports/
+
+# Catalyst JSON + Stockbee momentum enrichment
+python3 skills/stockbee-episodic-pivot-analyzer/scripts/analyze_ep.py \
+  --events-json data/catalysts.json \
+  --momentum-json reports/stockbee_momentum_burst_YYYY-MM-DD_HHMMSS.json \
+  --output-dir reports/
+```
+
+Optional FMP enrichment:
+
+```bash
+export FMP_API_KEY=your_key
+python3 skills/stockbee-episodic-pivot-analyzer/scripts/analyze_ep.py \
+  --events-json data/catalysts.json \
+  --max-api-calls 200 \
+  --output-dir reports/
+```
+
+### Step 3: Review the Output
+
+For each candidate, present:
+
+- `state`: `ACTIONABLE_DAY1`, `DAY1_WATCH`, `DELAYED_EP_WATCH`, `CATALYST_WATCH`, or `REJECT`
+- `ep_type`: `EARNINGS_EP`, `GUIDANCE_EP`, `FDA_EP`, `M_AND_A_EP`, `STORY_EP`, etc.
+- Catalyst quality score and reasons
+- Price/range expansion, volume shock, and close-location quality
+- Risk to EP-day low
+- `pead_handoff` and `delayed_ep_watch` flags
+
+### Step 4: Handoff Rules
+
+- `ACTIONABLE_DAY1`: Send to `technical-analyst` and `position-sizer` before any trade decision.
+- `DAY1_WATCH`: Keep on the intraday/next-day watchlist; require chart confirmation.
+- `DELAYED_EP_WATCH`: Do not chase Day 1; monitor for a controlled pullback or new range.
+- `CATALYST_WATCH`: Catalyst may be important, but price/volume confirmation is not yet sufficient.
+- `REJECT`: Do not trade from this candidate source.
+- Earnings/guidance EPs with `pead_handoff=true` can be sent to `pead-screener` for weekly red-candle / delayed reaction monitoring.
+
+## Output
+
+- `stockbee_episodic_pivot_YYYY-MM-DD_HHMMSS.json` — structured EP scoring report
+- `stockbee_episodic_pivot_YYYY-MM-DD_HHMMSS.md` — human-readable candidate report
+
+## Resources
+
+- `references/ep_methodology.md` — Stockbee EP interpretation and setup taxonomy
+- `references/catalyst_quality.md` — catalyst classification and quality scoring
+- `references/handoff_rules.md` — downstream workflow handoffs and review rules
+
+## Shared FMP client
+
+Live FMP access uses the bundled generated `scripts/fmp_client.py`, loaded only
+when an FMP run starts, so offline modes still work without `requests`. CLI
+key/environment precedence, the API-call budget and successful output shapes are
+preserved. Requests use stable endpoints only; a denied, empty or failed stable
+request does not fall back to retired v3 URLs. The shared client masks raw and
+URL-encoded key echoes, retries malformed JSON once, and retries a 429 at most once,
+after a 60-second wait, before stopping on a repeated rate limit.
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

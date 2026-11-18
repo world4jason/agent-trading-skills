@@ -1,4 +1,4 @@
 interface:
-  display_name: "研究台股財報後漂移"
-  short_description: "Taiwan stocks and ETFs: pead-screener"
-  default_prompt: "使用 $pead-screener，研究台股財報後漂移。"
+  display_name: "pead-screener"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $pead-screener with its original method; apply the Taiwan data extension when the requested market is Taiwan."

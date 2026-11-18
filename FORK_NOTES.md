@@ -9,6 +9,8 @@ Trading skills for Codex, Claude, OpenCode, and other AI agents.
 
 ## Codex 預設安裝
 
+保留原始完整目錄，預設仍只安裝股票／ETF 研究範圍內的 67 個 skills。
+
 在專案根目錄建立 Python 環境並安裝：
 
 ```bash
@@ -24,7 +26,13 @@ skills，且不覆蓋非連結資料夾。安裝後請保留 checkout 與 `.venv
 其他 agent 可將 `skills/<skill-name>/SKILL.md` 標準 skill 檔案放入各自的 skills 目錄；
 本 repo 不宣稱已針對其他 agent client 完成測試。
 
-## 選股與價格來源
+## 原版方法與附加資料
+
+原版 `SKILL.md` 主體、工作流程、導航器與十個 CLI 已恢復；不再強制轉接獨立掃描引擎。
+先讀 [資料擴充契約](UPSTREAM_DATA_EXTENSION.md)。美股保留原 FMP／FINVIZ 需求；
+台股 Yahoo／FinMind 工具尚未接入所有原 CLI，不宣稱原管線台股移植已全部完成。
+
+## 實驗掃描器與價格來源
 
 screen 與 prices 指令接受 `--provider auto|yahoo|finmind`。`auto` 先嘗試 Yahoo 日線，再
 嘗試 FinMind。明確指定 provider 時先嘗試該來源；若無法涵蓋所需日期範圍，就改用另一個

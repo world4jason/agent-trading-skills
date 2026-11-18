@@ -1,4 +1,4 @@
 interface:
-  display_name: "整理台股財報與法說事件"
-  short_description: "Taiwan stocks and ETFs: earnings-calendar"
-  default_prompt: "使用 $earnings-calendar，整理台股財報與法說事件。"
+  display_name: "earnings-calendar"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $earnings-calendar with its original method; apply the Taiwan data extension when the requested market is Taiwan."

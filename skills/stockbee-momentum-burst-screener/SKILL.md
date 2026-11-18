@@ -1,35 +1,168 @@
 ---
 name: stockbee-momentum-burst-screener
-description: 辨識台股短期動能擴張。以原方法的比例變化、成交量及平台條件研究，美元絕對價格門檻不可直接改成相同台幣數字；不足資料不得補分。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Screen US stocks for Stockbee-style short-term Momentum Burst setups using 4% breakout, dollar breakout, range expansion, volume expansion, prior range contraction, close-location, failure filters, and risk-distance scoring. Use when the user asks for Stockbee, Pradeep Bonde, momentum burst, 4% breakout, range expansion, dollar breakout, short-term swing momentum candidates, or 3-5 day burst setup review.
 ---
 
-# 辨識台股短期動能擴張
+# Stockbee Momentum Burst Screener
 
-以原方法的比例變化、成交量及平台條件研究，美元絕對價格門檻不可直接改成相同台幣數字；不足資料不得補分。
+Screen US equities for Stockbee-style short-term Momentum Burst candidates. The skill is a candidate-generation and setup-quality workflow, not a signal service or an auto-execution system.
 
-## 執行流程
+## When to Use
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-technical.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+- User asks for Stockbee / Pradeep Bonde style Momentum Burst screening
+- User wants 4% breakout, dollar breakout, or range expansion candidates
+- User asks for short-term 3-5 day swing momentum setups
+- User wants to review whether a daily breakout has A/B/C setup quality
+- User provides a symbol list, universe file, or historical OHLCV JSON for screening
+- User wants candidate outputs to feed into `technical-analyst`, `position-sizer`, or `trader-memory-core`
 
-## 方法論資源
+## Prerequisites
 
-- [entry_exit_rules.md](references/entry_exit_rules.md)
-- [momentum_burst_methodology.md](references/momentum_burst_methodology.md)
-- [scoring_system.md](references/scoring_system.md)
+- FMP API key for live universe and historical OHLCV screening:
+  ```bash
+  export FMP_API_KEY=your_api_key_here
+  ```
+- Install `requirements.txt`, including the pinned exchange-calendar dependency.
+- Optional no-API path: provide `--prices-json` containing daily OHLCV bars by symbol; historical fixtures need an explicit completed `--as-of YYYY-MM-DD`.
+- Run only after the market-regime workflow allows new swing risk, or mark output as manual-review-only.
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+## Workflow
 
-## 自動選股入口
+### Step 1: Choose Input Mode
 
-從本專案根目錄執行：
+Use one of three modes:
 
+**Mode A: FMP universe scan**
 ```bash
-.venv/bin/python scripts/taiwan_screen.py --strategy momentum-burst --symbols 2330 6488 0050 --start 2023-01-01 --end 2024-12-31 --output /tmp/taiwan-screen.json
+python3 skills/stockbee-momentum-burst-screener/scripts/screen_momentum_burst.py \
+  --fmp-universe \
+  --max-symbols 300 \
+  --output-dir reports/
 ```
 
-日期與標的是操作範例，依使用者要求調整。全市場改用 `--all`；要限制上市／上櫃或股票／ETF，可用 `--exchange`、`--kind`。讀 [引擎規則與資料限制](../../TAIWAN_ENGINES.md)，完整保留未評估項目；不得把部分條件通過說成完整方法通過。
+**Mode B: Explicit symbols**
+```bash
+python3 skills/stockbee-momentum-burst-screener/scripts/screen_momentum_burst.py \
+  --symbols NVDA SMCI PLTR TSLA \
+  --output-dir reports/
+```
+
+**Mode C: Offline OHLCV JSON**
+```bash
+python3 skills/stockbee-momentum-burst-screener/scripts/screen_momentum_burst.py \
+  --prices-json data/daily_ohlcv.json \
+  --as-of 2026-11-06 \
+  --output-dir reports/
+```
+
+### Completed-session freshness gate
+
+Every input mode must pass the same freshness gate before scoring. The default
+cutoff is the most recently **completed NYSE session**, frozen before collection
+using the New York exchange calendar. Before the close, today's unfinished bar is
+excluded; weekends, holidays, DST and early closes follow the shared calendar.
+
+- `--as-of YYYY-MM-DD` selects the last session on/before that date. It must not
+  exceed the actual latest completed session, even if today was specified before
+  the close. Historical dates only clip the available input window: live FMP
+  requests do not guarantee that older data will be available or point-in-time.
+- `--max-bar-age-sessions N` permits at most N subsequent exchange sessions
+  (nonnegative integer; default **0**). A wider tolerance deliberately admits
+  older observations; it does not make them current. Keep the default for Day 1
+  screening.
+- Bars after the cutoff are excluded. Missing/noncanonical dates anywhere in
+  supplied rows produce `REJECTED` / `invalid_price_date`. In `--prices-json`,
+  each row's `date` (or `timestamp`) must be exactly `YYYY-MM-DD`; values such as
+  `2026-11-06 00:00:00` or `2026-11-06T00:00:00Z` are rejected. A latest eligible bar
+  on a non-session day is also rejected. No eligible bar produces
+  `no_completed_price_data`. Too-old bars produce `stale_price_data`, score 0 and
+  a do-not-trade downstream action. Short usable history stays rejected.
+- With `--max-bar-age-sessions` above 0, a setup on an older (but tolerated) bar is
+  capped at `MANUAL_REVIEW` with a `stale_bar_tolerated` soft tag, never
+  `ACTIONABLE_DAY1`. The cap changes only `state`; `rating` and `setup_score`
+  keep their computed values, and the tag is added only when the cap applies.
+  Treat `bar_age_sessions > 0` as the authoritative stale-bar signal, and do not
+  route on `rating` alone. When every processed symbol is stale (typically FMP has not
+  yet published today's EOD data), the report carries a top-level `warnings`
+  entry and a `## Warnings` section in the markdown.
+- Calendar failure exits 1 before reports are written; invalid flag syntax exits
+  2. A future/uncompleted as-of exits 1 before any provider request. Neither path
+  replaces existing reports. The FMP universe additionally requests active
+  equities and discards rows explicitly marked inactive; absent flags never
+  substitute for the bar freshness gate.
+
+JSON candidates include `latest_bar_date` (null if unplaceable/no eligible bar),
+`expected_session`, `bar_age_sessions` (null when unknown) and
+`max_bar_age_sessions`. Report metadata includes the expected session, allowed age,
+`latest_bar_dates` by symbol and `stale_price_data_count`. The Markdown summary
+shows cutoff, tolerance and stale count even without `--include-rejected`.
+Dates and freshness do not establish provider identity, completeness, adjustment
+or historical availability, and this screen never authorizes an order.
+
+### Step 2: Run the Screening Pass
+
+The script detects these trigger families:
+
+- **4% Breakout:** `close / previous_close >= 1.04`, volume above previous day, and volume above the liquidity floor
+- **Dollar Breakout:** `close - open >= 0.90`, volume above the liquidity floor
+- **Range Expansion:** current daily range exceeds the prior three daily ranges while the prior day was not already extended
+
+It then scores setup quality using:
+
+- Trigger strength
+- Volume expansion
+- Prior base / range contraction quality
+- Close location near the high of day
+- Risk distance to the trigger-day low
+- Failure filters such as prior 3-day run-up or recent 4% breakdown
+- Market gate alignment
+
+### Step 3: Review Output
+
+Read the generated JSON and Markdown reports. For each candidate, present:
+
+- Trigger type and all matched trigger tags
+- Day gain, dollar gain, volume ratio, and close-location percentage
+- Prior base length and base width
+- Entry reference, stop reference, and risk percentage to stop
+- Setup score, rating, state, and reject reasons
+- Suggested downstream action
+
+### Step 4: Send Survivors to Trade Planning
+
+Use the output conservatively:
+
+- **A / A- candidates:** send to `technical-analyst` for manual chart validation, then `position-sizer`
+- **B candidates:** watchlist or smaller-risk review only
+- **Watch-only candidates:** keep in model book; do not plan a trade unless chart review upgrades the setup
+- **Rejected candidates:** retain for post-analysis, not for execution
+
+## Output
+
+- `stockbee_momentum_burst_YYYY-MM-DD_HHMMSS.json` - Structured candidate list, metadata, thresholds, score components, and rejects
+- `stockbee_momentum_burst_YYYY-MM-DD_HHMMSS.md` - Human-readable report grouped by rating/state
+
+## Resources
+
+- `references/momentum_burst_methodology.md` - Stockbee-style method summary and implementation boundaries
+- `references/scoring_system.md` - Component weights, state thresholds, and failure filters
+- `references/entry_exit_rules.md` - Entry reference, stop, sizing handoff, and exit template
+
+## Shared FMP client
+
+Live FMP access uses the bundled generated `scripts/fmp_client.py`, loaded only
+when an FMP run starts, so offline modes still work without `requests`. CLI
+key/environment precedence, the API-call budget and successful output shapes are
+preserved. Requests use stable endpoints only; a denied, empty or failed stable
+request does not fall back to retired v3 URLs. The shared client masks raw and
+URL-encoded key echoes, retries malformed JSON once, and retries a 429 at most once,
+after a 60-second wait, before stopping on a repeated rate limit.
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

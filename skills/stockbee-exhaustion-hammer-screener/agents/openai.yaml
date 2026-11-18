@@ -1,4 +1,4 @@
 interface:
-  display_name: "辨識台股下跌後槌子線"
-  short_description: "Taiwan stocks and ETFs: stockbee-exhaustion-hammer-screener"
-  default_prompt: "使用 $stockbee-exhaustion-hammer-screener，辨識台股下跌後槌子線。"
+  display_name: "stockbee-exhaustion-hammer-screener"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $stockbee-exhaustion-hammer-screener with its original method; apply the Taiwan data extension when the requested market is Taiwan."

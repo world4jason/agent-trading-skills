@@ -1,4 +1,4 @@
 interface:
-  display_name: "計算台股股數與張數"
-  short_description: "Taiwan stocks and ETFs: position-sizer"
-  default_prompt: "使用 $position-sizer，計算台股股數與張數。"
+  display_name: "position-sizer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $position-sizer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

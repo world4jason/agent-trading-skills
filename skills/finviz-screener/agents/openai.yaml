@@ -1,4 +1,4 @@
 interface:
-  display_name: "依條件篩選台股與 ETF"
-  short_description: "Taiwan stocks and ETFs: finviz-screener"
-  default_prompt: "使用 $finviz-screener，依條件篩選台股與 ETF。"
+  display_name: "finviz-screener"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $finviz-screener with its original method; apply the Taiwan data extension when the requested market is Taiwan."

@@ -1,4 +1,4 @@
 interface:
-  display_name: "研究台股歷史回檔期間"
-  short_description: "Taiwan stocks and ETFs: downtrend-duration-analyzer"
-  default_prompt: "使用 $downtrend-duration-analyzer，研究台股歷史回檔期間。"
+  display_name: "downtrend-duration-analyzer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $downtrend-duration-analyzer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

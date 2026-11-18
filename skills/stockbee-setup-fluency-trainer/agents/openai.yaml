@@ -1,4 +1,4 @@
 interface:
-  display_name: "建立台股型態樣本簿"
-  short_description: "Taiwan stocks and ETFs: stockbee-setup-fluency-trainer"
-  default_prompt: "使用 $stockbee-setup-fluency-trainer，建立台股型態樣本簿。"
+  display_name: "stockbee-setup-fluency-trainer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $stockbee-setup-fluency-trainer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

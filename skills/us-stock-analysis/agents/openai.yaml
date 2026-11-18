@@ -1,4 +1,4 @@
 interface:
-  display_name: "研究台股公司與 ETF"
-  short_description: "Taiwan stocks and ETFs: us-stock-analysis"
-  default_prompt: "使用 $us-stock-analysis，研究台股公司與 ETF。"
+  display_name: "us-stock-analysis"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $us-stock-analysis with its original method; apply the Taiwan data extension when the requested market is Taiwan."

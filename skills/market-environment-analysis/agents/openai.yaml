@@ -1,4 +1,4 @@
 interface:
-  display_name: "分析台股市場環境"
-  short_description: "Taiwan stocks and ETFs: market-environment-analysis"
-  default_prompt: "使用 $market-environment-analysis，分析台股市場環境。"
+  display_name: "market-environment-analysis"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $market-environment-analysis with its original method; apply the Taiwan data extension when the requested market is Taiwan."

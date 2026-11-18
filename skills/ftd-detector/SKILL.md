@@ -1,24 +1,170 @@
 ---
 name: ftd-detector
-description: 辨識台股後續跟進日條件。用明確指定的台股指數價格/成交量與台股交易日追蹤反彈日序；不能把任一 ETF 或 SPY 默認為加權指數。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Detects Follow-Through Day (FTD) signals for market bottom confirmation using William O'Neil's methodology. Dual-index tracking (S&P 500 + NASDAQ) with state machine for rally attempt, FTD qualification, and post-FTD health monitoring. Use when user asks about market bottom signals, follow-through days, rally attempts, re-entry timing after corrections, or whether it's safe to increase equity exposure. Complementary to market-top-detector (defensive) - this skill is offensive (bottom confirmation).
 ---
 
-# 辨識台股後續跟進日條件
+# FTD Detector Skill
 
-用明確指定的台股指數價格/成交量與台股交易日追蹤反彈日序；不能把任一 ETF 或 SPY 默認為加權指數。
+## Purpose
 
-## 執行流程
+Detect Follow-Through Day (FTD) signals that confirm a market bottom, using William O'Neil's proven methodology. Generates a quality score (0-100) with exposure guidance for re-entering the market after corrections.
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-breadth.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+**Complementary to Market Top Detector:**
+- Market Top Detector = defensive (detects distribution, rotation, deterioration)
+- FTD Detector = offensive (detects rally attempts, bottom confirmation)
 
-## 方法論資源
+## When to Use This Skill
 
-- [ftd_methodology.md](references/ftd_methodology.md)
-- [post_ftd_guide.md](references/post_ftd_guide.md)
+**English:**
+- User asks "Is the market bottoming?" or "Is it safe to buy again?"
+- User observes a market correction (3%+ decline) and wants re-entry timing
+- User asks about Follow-Through Days or rally attempts
+- User wants to assess if a recent bounce is sustainable
+- User asks about increasing equity exposure after a correction
+- Market Top Detector shows elevated risk and user wants bottom signals
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+**Japanese:**
+- 「底打ちした？」「買い戻して良い？」
+- 調整局面（3%以上の下落）からのエントリータイミング
+- フォロースルーデーやラリーアテンプトについて
+- 直近の反発が持続可能か評価したい
+- 調整後のエクスポージャー拡大の判断
+- Market Top Detectorが高リスク表示の後の底打ちシグナル確認
+
+## Difference from Market Top Detector
+
+| Aspect | FTD Detector | Market Top Detector |
+|--------|-------------|-------------------|
+| Focus | Bottom confirmation (offensive) | Top detection (defensive) |
+| Trigger | Market correction (3%+ decline) | Market at/near highs |
+| Signal | Rally attempt → FTD → Re-entry | Distribution → Deterioration → Exit |
+| Score | 0-100 FTD quality | 0-100 top probability |
+| Action | When to increase exposure | When to reduce exposure |
+
+---
+
+## Execution Workflow
+
+### Phase 1: Execute Python Script
+
+Run the FTD detector script:
+
+```bash
+python3 skills/ftd-detector/scripts/ftd_detector.py --api-key $FMP_API_KEY
+```
+
+The script will:
+1. Fetch S&P 500 and QQQ historical data (60+ trading days) from FMP API
+2. Fetch current quotes for both indices
+3. Run dual-index state machine (correction → rally → FTD detection)
+4. Assess post-FTD health (distribution days, invalidation, power trend)
+5. Calculate quality score (0-100)
+6. Generate JSON and Markdown reports
+
+**API Budget:** 4 calls (well within free tier of 250/day)
+
+### Phase 2: Present Results
+
+Present the generated Markdown report to the user, highlighting:
+- Current market state (correction, rally attempt, FTD confirmed, etc.)
+- Quality score and signal strength
+- Recommended exposure level
+- Key watch levels (swing low, FTD day low)
+- Post-FTD health (distribution days, power trend)
+
+### Phase 3: Contextual Guidance
+
+Based on the market state, provide additional guidance:
+
+**If FTD Confirmed (score 60+):**
+- Suggest looking at leading stocks in proper bases
+- Reference CANSLIM screener for candidate stocks
+- Remind about position sizing and stops
+
+**If Rally Attempt (Day 1-3):**
+- Advise patience, do not buy ahead of FTD
+- Suggest building watchlists
+
+**If No Correction:**
+- FTD analysis is not applicable in uptrend
+- Redirect to Market Top Detector for defensive signals
+
+---
+
+## State Machine
+
+```
+NO_SIGNAL → CORRECTION → RALLY_ATTEMPT → FTD_WINDOW → FTD_CONFIRMED
+                ↑              ↓               ↓              ↓
+                └── RALLY_FAILED ←─────────────┘     FTD_INVALIDATED
+```
+
+| State | Definition |
+|-------|-----------|
+| NO_SIGNAL | Uptrend, no qualifying correction |
+| CORRECTION | 3%+ decline with 3+ down days |
+| RALLY_ATTEMPT | Day 1-3 of rally from swing low |
+| FTD_WINDOW | Day 4-10, waiting for qualifying FTD |
+| FTD_CONFIRMED | Valid FTD signal detected |
+| RALLY_FAILED | Rally broke below swing low |
+| FTD_INVALIDATED | Close below FTD day's low |
+
+## Quality Score (0-100)
+
+| Score | Signal | Exposure |
+|-------|--------|----------|
+| 80-100 | Strong FTD | 75-100% |
+| 60-79 | Moderate FTD | 50-75% |
+| 40-59 | Weak FTD | 25-50% |
+| <40 | No FTD / Failed | 0-25% |
+| 0 | Unavailable: data gap | 0-25% |
+
+---
+
+## Prerequisites
+
+- **FMP API Key:** Required. Set `FMP_API_KEY` environment variable or pass via `--api-key` flag.
+- **Python 3.9+:** With `requests` library installed.
+- **API Budget:** 4 calls per execution (well within FMP free tier of 250/day).
+
+## Output Files
+
+- JSON: `ftd_detector_YYYY-MM-DD_HHMMSS.json`
+- Markdown: `ftd_detector_YYYY-MM-DD_HHMMSS.md`
+
+### Data gaps (missing or invalid price bars)
+
+A missing or non-finite close/volume (or a non-positive close) is never read as 0, and bars are never dropped. Bar fields are read through the vendored `scripts/_price_bars.py` helper.
+
+- **JSON `data_gap`** (bool, every run, at the top level and in `market_state`): true when an index's 60-session window or a post-FTD check hit a bad bar.
+- **JSON `data_quality`** (every run): per index, the window check (`window_sessions`, `bad_bars`, `bad_dates`, `latest_bad`) plus `sp500.power_trend_bad_bars` for the power-trend input (counted only when the power trend runs, 50+ bars). Each index block also carries its own `data_quality`, and `error` when the analysis failed ("Insufficient data" or "Data gap: ...").
+- **Gapped index:** `NO_SIGNAL` with `current_price` / `lookback_high` / `correction_depth_pct` set to `null`; no rally or FTD logic runs for it. With any gapped index the run's `combined_state` is reported as `NO_SIGNAL` with `data_gap: true`, meaning *state unavailable* (not an uptrend), with `ftd_index: null` and no post-FTD checks. The other index is never promoted, because the gap could be hiding the gapped index's own (possibly invalidated) FTD. Each index's own analysis stays in the JSON. The Markdown headline reads "State unavailable (data gap)".
+- **Unavailable score:** if any index is gapped, or the post-FTD distribution or invalidation check has a gap, `quality_score` is `total_score: 0` (always an int, never `null`), `signal: "Unavailable: data gap"`, `exposure_range: "0-25%"`, `data_gap: true`. Treat this as "no usable confirmation": do not increase exposure on it. A gapped distribution check keeps `distribution_count: 0` (int) with `data_gap: true`; a gapped invalidation check reports `invalidated: null`. A post-FTD gap also reports the combined state as `NO_SIGNAL` with `data_gap: true` (state unavailable), since the FTD can be neither confirmed nor invalidated.
+- **Power trend:** a bad close anywhere in its input gives `power_trend: null` with a `reason`; this alone does not set `data_gap` or change the score.
+- **Volume 0 is a data gap.** For ^GSPC and QQQ a zero session volume is provider missing data, so a missing, invalid or zero volume inside the 60-session window (or the post-FTD checks) marks a data gap. This is a behavior change from earlier versions, which read volume 0 as real.
+
+## Reference Documents
+
+### `skills/ftd-detector/references/ftd_methodology.md`
+- O'Neil's FTD rules in detail
+- Rally attempt mechanics and day counting
+- Historical FTD examples (2020 March, 2022 October)
+
+### `skills/ftd-detector/references/post_ftd_guide.md`
+- Post-FTD distribution day failure rates
+- Power Trend definition and conditions
+- Success vs failure pattern comparison
+
+### When to Load References
+- **First use:** Load `skills/ftd-detector/references/ftd_methodology.md` for full understanding
+- **Post-FTD questions:** Load `skills/ftd-detector/references/post_ftd_guide.md`
+- **Regular execution:** References not needed - script handles analysis
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

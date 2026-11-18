@@ -1,4 +1,4 @@
 interface:
-  display_name: "研究台股配對關係"
-  short_description: "Taiwan stocks and ETFs: pair-trade-screener"
-  default_prompt: "使用 $pair-trade-screener，研究台股配對關係。"
+  display_name: "pair-trade-screener"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $pair-trade-screener with its original method; apply the Taiwan data extension when the requested market is Taiwan."

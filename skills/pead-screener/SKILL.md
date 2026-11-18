@@ -1,34 +1,109 @@
 ---
 name: pead-screener
-description: 研究台股財報後漂移。以實際公告時刻、可驗證盈餘預期/驚喜與後續價格研究；無共識預期時只報事件後報酬，不能冒稱已完成盈餘驚喜篩選。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Screen post-earnings gap-up stocks for PEAD (Post-Earnings Announcement Drift) patterns. Analyzes weekly candle formation to detect red candle pullbacks and breakout signals. Supports two input modes - FMP earnings calendar (Mode A) or earnings-trade-analyzer JSON output (Mode B). Use when user asks about PEAD screening, post-earnings drift, earnings gap follow-through, red candle breakout patterns, or weekly earnings momentum setups.
 ---
 
-# 研究台股財報後漂移
+# PEAD Screener - Post-Earnings Announcement Drift
 
-以實際公告時刻、可驗證盈餘預期/驚喜與後續價格研究；無共識預期時只報事件後報酬，不能冒稱已完成盈餘驚喜篩選。
+Screen post-earnings gap-up stocks for PEAD (Post-Earnings Announcement Drift) patterns using weekly candle analysis to detect red candle pullbacks and breakout signals.
 
-## 執行流程
+## When to Use
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-events.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+- User asks for PEAD screening or post-earnings drift analysis
+- User wants to find earnings gap-up stocks with follow-through potential
+- User requests red candle breakout patterns after earnings
+- User asks for weekly earnings momentum setups
+- User provides earnings-trade-analyzer JSON output for further screening
 
-## 方法論資源
+## Prerequisites
 
-- [entry_exit_rules.md](references/entry_exit_rules.md)
-- [pead_strategy.md](references/pead_strategy.md)
+- FMP API key (set `FMP_API_KEY` environment variable or pass `--api-key`)
+  ```bash
+  export FMP_API_KEY=your_api_key_here
+  ```
+- Free tier (250 calls/day) is sufficient for default screening
+- For Mode B: earnings-trade-analyzer JSON output file with schema_version "1.0"
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+## Workflow
 
-## 自動選股入口
+### Step 1: Prepare and Execute Screening
 
-從本專案根目錄執行：
+Run the PEAD screener script in one of two modes:
 
+**Mode A (FMP earnings calendar):**
 ```bash
-.venv/bin/python scripts/taiwan_screen.py --strategy pead --symbols 2330 6488 0050 --start 2023-01-01 --end 2024-12-31 --output /tmp/taiwan-screen.json
+# Default: last 14 days of earnings, 5-week monitoring window
+python3 skills/pead-screener/scripts/screen_pead.py --output-dir reports/
+
+# Custom parameters
+python3 skills/pead-screener/scripts/screen_pead.py \
+  --lookback-days 21 \
+  --watch-weeks 6 \
+  --min-gap 5.0 \
+  --min-market-cap 1000000000 \
+  --output-dir reports/
 ```
 
-日期與標的是操作範例，依使用者要求調整。全市場改用 `--all`；要限制上市／上櫃或股票／ETF，可用 `--exchange`、`--kind`。讀 [引擎規則與資料限制](../../TAIWAN_ENGINES.md)，完整保留未評估項目；不得把部分條件通過說成完整方法通過。
+**Mode B (earnings-trade-analyzer JSON input):**
+```bash
+# From earnings-trade-analyzer output
+python3 skills/pead-screener/scripts/screen_pead.py \
+  --candidates-json reports/earnings_trade_analyzer_YYYY-MM-DD_HHMMSS.json \
+  --min-grade B \
+  --output-dir reports/
+```
+
+**Scheduled US-equity routine pitfall:** Prefer Mode B for pre-market / US-equity cron briefs after running `earnings-trade-analyzer`. Mode A can pull the global FMP earnings calendar, spend the API budget on non-US symbols, and return weak/non-actionable foreign listings before reaching the intended US watchlist. If Mode A is used anyway and the script reports budget trimming or non-US symbols, mark PEAD output as degraded and treat it as manual-review only rather than a clean candidate source.
+
+### Step 2: Review Results
+
+1. Read the generated JSON and Markdown reports
+2. Load `references/pead_strategy.md` for PEAD theory and pattern context
+3. Load `references/entry_exit_rules.md` for trade management rules
+
+### Step 3: Present Analysis
+
+For each candidate, present:
+- Stage classification (MONITORING, SIGNAL_READY, BREAKOUT, EXPIRED)
+- Weekly candle pattern details (red candle location, breakout status)
+- Composite score and rating
+- Trade setup: entry, stop-loss, target, risk/reward ratio
+- Liquidity metrics (ADV20, average volume)
+
+### Step 4: Provide Actionable Guidance
+
+Based on stages and ratings:
+- **BREAKOUT + Strong Setup (85+):** High-conviction PEAD trade, full position size
+- **BREAKOUT + Good Setup (70-84):** Solid PEAD setup, standard position size
+- **SIGNAL_READY:** Red candle formed, set alert for breakout above red candle high
+- **MONITORING:** Post-earnings, no red candle yet, add to watchlist
+- **EXPIRED:** Beyond monitoring window, remove from watchlist
+
+## Output
+
+- `pead_screener_YYYY-MM-DD_HHMMSS.json` - Structured results with stage classification
+- `pead_screener_YYYY-MM-DD_HHMMSS.md` - Human-readable report grouped by stage
+
+### Unknown earnings timing
+
+FMP does not confirm a bmo/amc session for every earnings row; unconfirmed
+rows carry `earnings_timing: "unknown"` in Mode A and the price gap
+calculation assumes the AMC window as a fallback. The Mode A report shows
+`timing_unknown_count` out of `timing_candidates_total` so this assumption
+stays visible (Mode B reports `n/a` since timing is inherited from the input
+JSON). `timing_candidates_total` is the post-budget-trim population that was
+actually analyzed, not the raw earnings-calendar row count.
+
+## Resources
+
+- `references/pead_strategy.md` - PEAD theory and weekly candle approach
+- `references/entry_exit_rules.md` - Entry, exit, and position sizing rules
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

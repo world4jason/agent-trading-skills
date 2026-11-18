@@ -1,27 +1,189 @@
 ---
 name: data-quality-checker
-description: 檢查台股／美股掃描的來源、日期、幣別、交易日、每股單位與資料缺口；區分資料不足、不適用、未通過及程式錯誤。
+description: Validate data quality in market analysis documents and blog articles before publication. Use when checking for price scale inconsistencies (ETF vs futures), instrument notation errors, date/day-of-week mismatches, allocation total errors, and unit mismatches. Supports English and Japanese content. Advisory mode -- flags issues as warnings for human review, not as blockers.
 ---
 
-# 檢查台美股研究資料品質
+## Overview
 
-逐項核對來源、日期、幣別、股/張單位、還原口徑、缺值及計算；將資料缺口與數字錯誤分開，勿修改原始資料以通過檢查。
+Detect common data quality issues in market analysis documents before
+publication. The checker validates five categories: price scale consistency,
+instrument notation, date/weekday accuracy, allocation totals, and unit usage.
+All findings are advisory -- they flag potential issues for human review rather
+than blocking publication.
 
-## 台股執行流程
+## When to Use
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-meta.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+- Before publishing a weekly strategy blog or market analysis report
+- After generating automated market summaries
+- When reviewing translated documents (English/Japanese) for data accuracy
+- When combining data from multiple sources (FRED, FMP, FINVIZ) into one report
+- As a pre-flight check for any document containing financial data
 
-## 方法論資源
+## Prerequisites
 
-- [common_data_errors.md](references/common_data_errors.md)
-- [instrument_notation_standard.md](references/instrument_notation_standard.md)
+- Python 3.9+
+- No external API keys required
+- No third-party Python packages required (uses only standard library)
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+## Workflow
 
-## 台股與美股全市場批次
+### Step 1: Receive Input Document
 
-使用者要求台股／美股全市場掃描時，讀 [跨市場掃描說明](../../CROSS_MARKET_SCAN.md)，使用 `scripts/market_scan.py` 與 `scripts/market_report.py`。官方目錄、實際處理數、來源日期與缺資料表必須保留；台灣 TWD／台北時間與美國 USD／美東時間分開，ETF 公司財報條件不適用。
+Accept the target markdown file path and optional parameters:
+- `--file`: Path to the markdown document to validate (required)
+- `--checks`: Comma-separated list of checks to run (optional; default: all)
+- `--as-of`: Reference date for year inference in YYYY-MM-DD format (optional)
+- `--output-dir`: Directory for report output (optional; default: `reports/`)
+
+### Step 2: Execute Validation Script
+
+Run the data quality checker script:
+
+```bash
+python3 skills/data-quality-checker/scripts/check_data_quality.py \
+  --file path/to/document.md \
+  --output-dir reports/
+```
+
+To run specific checks only:
+
+```bash
+python3 skills/data-quality-checker/scripts/check_data_quality.py \
+  --file path/to/document.md \
+  --checks price_scale,dates,allocations
+```
+
+To provide a reference date for year inference (useful for documents without
+explicit year in dates):
+
+```bash
+python3 skills/data-quality-checker/scripts/check_data_quality.py \
+  --file path/to/document.md \
+  --as-of 2026-02-28
+```
+
+### Step 3: Load Reference Standards
+
+Read the relevant reference documents to contextualize findings:
+
+- `references/instrument_notation_standard.md` -- Standard ticker notation,
+  digit-count hints, and naming conventions for each instrument class
+- `references/common_data_errors.md` -- Catalog of frequently observed errors
+  including FRED data delays, ETF/futures scale confusion, holiday oversights,
+  allocation total pitfalls, and unit confusion patterns
+
+Use these references to explain findings and suggest corrections.
+
+### Step 4: Review Findings
+
+Examine each finding in the output:
+
+- **ERROR** -- High confidence issues (e.g., date-weekday mismatches verified
+  by calendar computation). Strongly recommend correction.
+- **WARNING** -- Likely issues that need human judgment (e.g., price scale
+  anomalies, notation inconsistencies, allocation sums off by more than 0.5%).
+- **INFO** -- Informational notes (e.g., mixed bp/% usage that may be
+  intentional).
+
+### Step 5: Generate Quality Report
+
+The script produces two output files:
+
+1. **JSON report** (`data_quality_YYYY-MM-DD_HHMMSS.json`): Machine-readable
+   list of findings with severity, category, message, line number, and context.
+2. **Markdown report** (`data_quality_YYYY-MM-DD_HHMMSS.md`): Human-readable
+   report grouped by severity level.
+
+Present the findings to the user with explanations referencing the knowledge
+base. Suggest specific corrections for each issue.
+
+## Output Format
+
+### JSON Finding Structure
+
+```json
+{
+  "severity": "WARNING",
+  "category": "price_scale",
+  "message": "GLD: $2,800 has 4 digits (expected 2-3 digits)",
+  "line_number": 5,
+  "context": "GLD: $2,800"
+}
+```
+
+### Markdown Report Structure
+
+```markdown
+# Data Quality Report
+**Source:** path/to/document.md
+**Generated:** 2026-02-28 14:30:00
+**Total findings:** 3
+
+## ERROR (1)
+- **[dates]** (line 12): Date-weekday mismatch: January 1, 2026 (Monday) -- actual weekday is Thursday
+
+## WARNING (2)
+- **[price_scale]** (line 5): GLD: $2,800 has 4 digits (expected 2-3 digits)
+  > `GLD: $2,800`
+- **[allocations]**: Allocation total: 110.0% (expected ~100%)
+```
+
+## Resources
+
+- `scripts/check_data_quality.py` -- Main validation script
+- `references/instrument_notation_standard.md` -- Notation and price scale reference
+- `references/common_data_errors.md` -- Common error patterns and prevention
+
+## Key Principles
+
+1. **Advisory mode**: All findings are warnings for human review. The script
+   always exits with code 0 on successful execution, even when findings are
+   present. Exit code 1 is reserved for script failures (file not found, parse
+   errors).
+
+2. **Section-aware allocation checking**: Only percentages within allocation
+   sections (identified by headings like "配分", "Allocation", or table columns
+   like "ウェイト", "目安比率") are checked. Random percentages in body text
+   (probability, RSI, YoY growth) are ignored.
+
+3. **Bilingual support**: Handles both English and Japanese date formats,
+   weekday names, and section headings. Full-width characters (％, 〜, en-dash)
+   are normalized before processing.
+
+4. **Year inference**: For dates without an explicit year, the checker infers
+   the year using (in priority order): the `--as-of` option, a YYYY pattern
+   found in the document title/metadata, or the current year with a 6-month
+   cross-year heuristic.
+
+5. **Digit-count heuristic**: Price scale validation uses digit counts (number
+   of digits before the decimal point) rather than absolute price ranges. This
+   approach is resilient to price changes over time while still catching
+   ETF/futures confusion errors.
+
+### Supported weekday checks
+
+The checker accepts `YYYY-MM-DD`, `YYYY/MM/DD`, `M/D` and Japanese
+`M月D日` dates followed by a weekday. Numeric dates accept English three-letter
+or full names (case-insensitive), or Japanese `火` / `火曜日` style labels.
+Use matching ASCII `(Tue)` or full-width `（火）` parentheses, optionally
+preceded by spaces or tabs. Japanese weekday labels also accept mixed-width
+parentheses for compatibility. Dates accept Unicode decimal digits, including
+full-width digits. Tight ranges such as `11/10(火)-11/12(水)` and
+`12/9-12/10(金)` check every dated endpoint. A year prefix written as
+`2025-11/10(水)` is ambiguous, so the weekday is reported only when it is
+wrong for both that year and the inferred year. Invalid calendar dates and unrecognized labels
+are outside this weekday check and are skipped, not reported as valid dates.
+An explicit numeric year always wins. Yearless forms reuse `--as-of` year
+inference (including the existing six-month rollover), then document year,
+filename year, or current year. Supply `--as-of` for reproducible checks.
+Every computed mismatch is an advisory **ERROR**, including Japanese forms
+that previously produced WARNING. Findings still leave the CLI exit status 0.
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

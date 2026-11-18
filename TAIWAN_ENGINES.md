@@ -1,8 +1,8 @@
-# 台股自動選股引擎
+# 實驗性台股掃描器（保留追溯）
 
-`python scripts/taiwan_screen.py --help` 是共同入口。
-[舊檔名對照](TAIWAN_ENGINE_MAP.json) 的十個入口轉到同一 CLI，提供九種策略。
-其餘舊美股市場監測、配對交易及自動排程仍是上游參考程式，不會因安裝而執行。
+正式 skill 已恢復上游方法與原 CLI。以下描述先前另建的 `taiwan_screen.py`，
+不代表原版管線完整移植；十個原 CLI **不再轉接**到此掃描器。
+[舊檔名對照](TAIWAN_ENGINE_MAP.json) 只供追溯。先讀 [資料擴充契約](UPSTREAM_DATA_EXTENSION.md)。
 
 ## 執行與輸出
 

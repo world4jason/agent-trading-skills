@@ -1,4 +1,4 @@
 interface:
-  display_name: "檢查台股高檔風險"
-  short_description: "Taiwan stocks and ETFs: market-top-detector"
-  default_prompt: "使用 $market-top-detector，檢查台股高檔風險。"
+  display_name: "market-top-detector"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $market-top-detector with its original method; apply the Taiwan data extension when the requested market is Taiwan."

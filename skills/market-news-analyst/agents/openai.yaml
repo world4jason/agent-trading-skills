@@ -1,4 +1,4 @@
 interface:
-  display_name: "整理影響台股的市場新聞"
-  short_description: "Taiwan stocks and ETFs: market-news-analyst"
-  default_prompt: "使用 $market-news-analyst，整理影響台股的市場新聞。"
+  display_name: "market-news-analyst"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $market-news-analyst with its original method; apply the Taiwan data extension when the requested market is Taiwan."

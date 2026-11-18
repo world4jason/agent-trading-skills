@@ -1,4 +1,4 @@
 interface:
-  display_name: "驗證台股 skill 流程銜接"
-  short_description: "Taiwan stocks and ETFs: skill-integration-tester"
-  default_prompt: "使用 $skill-integration-tester，驗證台股 skill 流程銜接。"
+  display_name: "skill-integration-tester"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $skill-integration-tester with its original method; apply the Taiwan data extension when the requested market is Taiwan."

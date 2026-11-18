@@ -1,4 +1,4 @@
 interface:
-  display_name: "回測台股現股與 ETF 規則"
-  short_description: "Taiwan stocks and ETFs: manifoldbt-backtester"
-  default_prompt: "使用 $manifoldbt-backtester，回測台股現股與 ETF 規則。"
+  display_name: "manifoldbt-backtester"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $manifoldbt-backtester with its original method; apply the Taiwan data extension when the requested market is Taiwan."

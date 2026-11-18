@@ -5,6 +5,38 @@ import pytest
 from scripts import taiwan_yahoo as yahoo
 
 
+@pytest.fixture(autouse=True)
+def reset_backoff(monkeypatch):
+    monkeypatch.setattr(yahoo, "_BACKOFF_UNTIL", 0.0)
+
+
+def test_rate_limit_stops_other_capabilities_and_next_symbol_until_cooldown(monkeypatch):
+    calls = []
+    clock = [100.0]
+
+    def throttled(**kwargs):
+        calls.append("income")
+        raise yahoo.YFRateLimitError()
+
+    def info():
+        calls.append("info")
+        return {"symbol": "2330.TW", "currency": "TWD"}
+
+    ticker = SimpleNamespace(get_info=info, get_income_stmt=throttled,
+                             get_balance_sheet=throttled, get_cashflow=throttled)
+    monkeypatch.setattr(yahoo.yf, "Ticker", lambda _: ticker)
+    monkeypatch.setattr(yahoo.time, "monotonic", lambda: clock[0])
+    result = yahoo.snapshot("2330.TW", capabilities=["income"])
+    assert calls == ["info", "income"]
+    assert result["status"] == "partial"
+    assert "retry deferred" in result["errors"]["quarterly_income"]
+    assert yahoo.snapshot("6488.TWO", capabilities=["income"])["status"] == "error"
+    assert calls == ["info", "income"]
+    clock[0] += 301
+    yahoo.snapshot("2330.TW", capabilities=["income"])
+    assert calls == ["info", "income", "info", "income"]
+
+
 def test_snapshot_normalizes_statements_and_keeps_missing_fields(monkeypatch):
     statement=pd.DataFrame({pd.Timestamp("2025-12-31"):[5.0,float("nan"),10**100]},index=["Basic EPS","Total Revenue","Net Income"])
     estimates=pd.DataFrame({"avg":[6.0],"currency":["TWD"],"methodology":["gaap"],"numberOfAnalysts":[4]},index=["+1y"])

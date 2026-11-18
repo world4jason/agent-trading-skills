@@ -1,23 +1,185 @@
 ---
 name: downtrend-duration-analyzer
-description: 研究台股歷史回檔期間。以台灣實際交易日計算起訖與右設限未完成樣本，按產業分組；ETF 另列，完整母體不足時說明樣本限制。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Analyze historical downtrend durations and generate interactive HTML histograms showing typical correction lengths by sector and market cap.
 ---
 
-# 研究台股歷史回檔期間
+# Downtrend Duration Analyzer
 
-以台灣實際交易日計算起訖與右設限未完成樣本，按產業分組；ETF 另列，完整母體不足時說明樣本限制。
+## Overview
 
-## 執行流程
+Analyze historical price data to identify downtrend periods (peak-to-trough) and build statistical distributions of correction durations. Generate interactive HTML visualizations with histograms segmented by sector and market cap to help traders understand typical recovery timeframes and set realistic expectations for mean reversion strategies.
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-research.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+## When to Use
 
-## 方法論資源
+- Trader asks about typical correction lengths for a sector or market cap tier
+- User wants to understand historical drawdown recovery times
+- Building mean reversion or pullback strategies that need realistic holding period estimates
+- Comparing correction behavior across different market segments
+- Setting stop-loss timeouts or position holding period limits
 
-- [downtrend_methodology.md](references/downtrend_methodology.md)
+## Prerequisites
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+- Python 3.9+
+- FMP API key (set `FMP_API_KEY` environment variable or use `--api-key`)
+- Required packages: `requests`, `pandas`, `numpy` (standard data analysis stack)
+
+## Workflow
+
+### Step 1: Fetch Historical Price Data
+
+Run the analysis script to fetch OHLC data for a universe of stocks and identify downtrend periods.
+
+```bash
+python3 skills/downtrend-duration-analyzer/scripts/analyze_downtrends.py \
+  --sector "Technology" \
+  --lookback-years 5 \
+  --output-dir reports/
+```
+
+### Step 2: Analyze Downtrend Durations
+
+The script automatically:
+1. Identifies local peaks and troughs using rolling window analysis
+2. Calculates duration (trading days) and depth (% decline) for each downtrend
+3. Segments results by sector and market cap tier (Mega, Large, Mid, Small)
+4. Computes summary statistics (median, mean, percentiles)
+
+### Step 3: Generate Interactive HTML Visualization
+
+```bash
+python3 skills/downtrend-duration-analyzer/scripts/generate_histogram_html.py \
+  --input reports/downtrend_analysis_*.json \
+  --output-dir reports/
+```
+
+This creates an interactive HTML file with:
+- Histogram of downtrend durations
+- Filters for sector and market cap
+- Hover tooltips with percentile information
+- Summary statistics table
+
+### Step 4: Review Distribution Insights
+
+Load the generated markdown report to interpret the findings:
+- **Short corrections (5-15 days)**: Typical pullbacks within uptrends
+- **Medium corrections (15-40 days)**: Standard sector rotations
+- **Extended corrections (40+ days)**: Trend changes or bear markets
+
+## Output Format
+
+### JSON Report
+
+```json
+{
+  "schema_version": "1.0",
+  "analysis_date": "2026-03-28T07:00:00Z",
+  "parameters": {
+    "lookback_years": 5,
+    "sector_filter": "Technology",
+    "peak_window": 20,
+    "trough_window": 20
+  },
+  "summary": {
+    "total_downtrends": 1234,
+    "median_duration_days": 18,
+    "mean_duration_days": 24.5,
+    "p25_duration_days": 10,
+    "p75_duration_days": 32,
+    "p90_duration_days": 55
+  },
+  "by_sector": {
+    "Technology": {
+      "count": 456,
+      "median_days": 15,
+      "mean_days": 20.3
+    }
+  },
+  "by_market_cap": {
+    "Mega": {"count": 200, "median_days": 12},
+    "Large": {"count": 300, "median_days": 16},
+    "Mid": {"count": 400, "median_days": 22},
+    "Small": {"count": 334, "median_days": 28}
+  },
+  "downtrends": [
+    {
+      "symbol": "AAPL",
+      "sector": "Technology",
+      "market_cap_tier": "Mega",
+      "peak_date": "2025-01-15",
+      "trough_date": "2025-02-10",
+      "duration_days": 18,
+      "depth_pct": -12.5
+    }
+  ]
+}
+```
+
+### Markdown Report
+
+```markdown
+# Downtrend Duration Analysis
+
+**Date**: 2026-03-28
+**Lookback**: 5 years
+**Sector**: Technology
+
+## Summary Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Downtrends | 1,234 |
+| Median Duration | 18 days |
+| Mean Duration | 24.5 days |
+| 25th Percentile | 10 days |
+| 75th Percentile | 32 days |
+| 90th Percentile | 55 days |
+
+## By Market Cap Tier
+
+| Tier | Count | Median | Mean |
+|------|-------|--------|------|
+| Mega ($200B+) | 200 | 12 days | 15.2 days |
+| Large ($10-200B) | 300 | 16 days | 20.1 days |
+| Mid ($2-10B) | 400 | 22 days | 28.4 days |
+| Small (<$2B) | 334 | 28 days | 35.6 days |
+
+## Key Insights
+
+1. Larger companies recover faster from corrections
+2. Technology sector shows shorter median correction than market average
+3. 90% of corrections resolve within 55 trading days
+```
+
+### HTML Visualization
+
+Interactive histogram saved to `reports/downtrend_histogram_YYYY-MM-DD.html` with:
+- Plotly.js-based interactive charts
+- Sector and market cap dropdown filters
+- Duration distribution with bin controls
+- Percentile markers (P25, P50, P75, P90)
+
+Reports are saved to `reports/` with filenames:
+- `downtrend_analysis_YYYY-MM-DD_HHMMSS.json`
+- `downtrend_analysis_YYYY-MM-DD_HHMMSS.md`
+- `downtrend_histogram_YYYY-MM-DD_HHMMSS.html`
+
+## Resources
+
+- `scripts/analyze_downtrends.py` -- Main analysis script for fetching data and computing downtrend durations
+- `scripts/generate_histogram_html.py` -- HTML visualization generator with interactive histograms
+- `references/downtrend_methodology.md` -- Peak/trough detection algorithms and market cap tier definitions
+
+## Key Principles
+
+1. **Statistical Rigor**: Use robust peak/trough detection to avoid noise-induced false signals
+2. **Segmentation Matters**: Always analyze by sector and market cap; averages hide important differences
+3. **Realistic Expectations**: Use percentiles (not just means) to understand the full distribution of outcomes
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

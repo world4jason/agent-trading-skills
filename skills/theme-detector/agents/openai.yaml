@@ -1,4 +1,4 @@
 interface:
-  display_name: "辨識台股產業與投資主題"
-  short_description: "Taiwan stocks and ETFs: theme-detector"
-  default_prompt: "使用 $theme-detector，辨識台股產業與投資主題。"
+  display_name: "theme-detector"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $theme-detector with its original method; apply the Taiwan data extension when the requested market is Taiwan."

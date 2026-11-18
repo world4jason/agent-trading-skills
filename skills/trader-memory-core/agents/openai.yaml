@@ -1,4 +1,4 @@
 interface:
-  display_name: "保存台股研究論點與成交紀錄"
-  short_description: "Taiwan stocks and ETFs: trader-memory-core"
-  default_prompt: "使用 $trader-memory-core，保存台股研究論點與成交紀錄。"
+  display_name: "trader-memory-core"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $trader-memory-core with its original method; apply the Taiwan data extension when the requested market is Taiwan."

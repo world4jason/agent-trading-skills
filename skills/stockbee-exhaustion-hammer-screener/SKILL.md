@@ -1,35 +1,143 @@
 ---
 name: stockbee-exhaustion-hammer-screener
-description: 辨識台股下跌後槌子線。計算影線/實體、前期回落、成交量與風險距離；確認漲跌停和零成交不是圖形假象，ETF 與股票分組。 適用於台灣上市、上櫃股票與
-  ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: Screen US stocks for Stockbee-style selling-exhaustion hammer setups using prior momentum, pullback depth, undercut/reclaim, long lower-wick geometry, close-location, volume confirmation, quality/liquidity gates, and risk-distance scoring. Use when the user asks for Stockbee, Pradeep Bonde, exhaustion setup, selling exhaustion, hammer reversal, undercut reclaim, near-close reversal candidates, or pullback entries in high-quality funds-owned stocks.
 ---
 
-# 辨識台股下跌後槌子線
+# Stockbee Exhaustion Hammer Screener
 
-計算影線/實體、前期回落、成交量與風險距離；確認漲跌停和零成交不是圖形假象，ETF 與股票分組。
+Screen US equities for Stockbee-style selling-exhaustion hammer candidates. The skill is a candidate-generation and setup-quality workflow, not a signal service or an auto-execution system.
 
-## 執行流程
+## When to Use
 
-1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
-2. 依 [本類分析操作指引](../../references/taiwan-technical.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
-3. 讀下列相關方法論，依本 skill 的重點執行分析。保留可用的比例與邏輯；美元門檻、美國市場母體、日曆及不適用的成分不能直接換名。
-4. 用本機 Python 計算需要精確運算的指標，保存來源、資料日期、標的/母體、單位、還原口徑、公式及缺資料項目。未知不等於零；缺必要成分時只報能支持的分項結論。
-5. 以繁體中文回覆實際結果、限制與可驗證依據；若使用者指定其他語言則遵從。不得宣稱取得未取回的資料或已執行未執行的回測。
+- User asks for Stockbee / Pradeep Bonde style exhaustion setup screening
+- User wants near-close hammer / long lower-wick reversal candidates
+- User wants to scan strong, liquid stocks that pulled back and may be seeing selling exhaustion
+- User wants undercut/reclaim candidates before the close or after the close
+- User provides a symbol list, universe file, or historical / provisional OHLCV JSON for screening
+- User wants candidate outputs to feed into `technical-analyst`, `position-sizer`, `trader-memory-core`, or `stockbee-setup-fluency-trainer`
 
-## 方法論資源
+## Prerequisites
 
-- [exhaustion_hammer_methodology.md](references/exhaustion_hammer_methodology.md)
-- [near_close_operations.md](references/near_close_operations.md)
-- [scoring_system.md](references/scoring_system.md)
+- FMP API key for live universe and historical OHLCV screening:
+  ```bash
+  export FMP_API_KEY=your_api_key_here
+  ```
+- Optional no-API path: provide `--prices-json` containing daily OHLCV bars by symbol. For the intended near-close use case, the latest bar should be a provisional current-day bar captured near the close.
+- Optional `--profiles-json` can add quality metadata such as `marketCap`, `mutualFundHolders`, `institutionalHolders`, or `institutionalOwnershipPct`.
+- Run only after the market-regime workflow allows new swing risk, or mark output as manual-review-only.
 
-這些資源保留上游研究方法，須套用本版適用性限制。`references/upstream-skill.md` 和舊美股執行器僅供追溯，不是本版的執行入口。
+## Workflow
 
-## 自動選股入口
+### Step 1: Choose Input Mode
 
-從本專案根目錄執行：
+Use one of three modes:
 
+**Mode A: FMP universe scan**
 ```bash
-.venv/bin/python scripts/taiwan_screen.py --strategy exhaustion-hammer --symbols 2330 6488 0050 --start 2023-01-01 --end 2024-12-31 --output /tmp/taiwan-screen.json
+python3 skills/stockbee-exhaustion-hammer-screener/scripts/screen_exhaustion_hammer.py \
+  --fmp-universe \
+  --max-symbols 300 \
+  --market-gate allowed \
+  --output-dir reports/
 ```
 
-日期與標的是操作範例，依使用者要求調整。全市場改用 `--all`；要限制上市／上櫃或股票／ETF，可用 `--exchange`、`--kind`。讀 [引擎規則與資料限制](../../TAIWAN_ENGINES.md)，完整保留未評估項目；不得把部分條件通過說成完整方法通過。
+**Mode B: Explicit symbols**
+```bash
+python3 skills/stockbee-exhaustion-hammer-screener/scripts/screen_exhaustion_hammer.py \
+  --symbols APP ENPH NVDA TSLA \
+  --market-gate allowed \
+  --output-dir reports/
+```
+
+**Mode C: Offline / near-close OHLCV JSON**
+```bash
+python3 skills/stockbee-exhaustion-hammer-screener/scripts/screen_exhaustion_hammer.py \
+  --prices-json data/near_close_daily_ohlcv.json \
+  --profiles-json data/quality_profiles.json \
+  --market-gate allowed \
+  --output-dir reports/
+```
+
+For a best-effort FMP near-close run, use quote override. This costs one additional quote call per symbol and depends on provider freshness:
+
+```bash
+python3 skills/stockbee-exhaustion-hammer-screener/scripts/screen_exhaustion_hammer.py \
+  --fmp-universe \
+  --use-quote-latest \
+  --max-api-calls 700 \
+  --market-gate allowed \
+  --output-dir reports/
+```
+
+### Step 2: Run the Screening Pass
+
+The script detects these setup families:
+
+- **Selling exhaustion hammer:** long lower wick, small body, strong close-location, and recovery from the day low
+- **Undercut/reclaim hammer:** current low undercuts the prior short-term low and the near-close price reclaims that level
+- **Prior momentum pullback:** recent high formed within the configured lookback, followed by a controlled pullback rather than a long-term downtrend
+- **High-quality / liquid context:** price, volume, 20-day average dollar volume, market-cap metadata, and optional holder metadata
+
+It then scores setup quality using:
+
+- Quality / liquidity
+- Prior momentum
+- Pullback and selling-exhaustion context
+- Hammer candle geometry
+- Risk distance to the day low plus buffer
+- Market gate alignment
+
+### Step 3: Review Output
+
+Read the generated JSON and Markdown reports. For each candidate, present:
+
+- Trigger type and all matched tags
+- Pullback depth from recent high and days since that high
+- Undercut/reclaim status and short-term prior low
+- Hammer geometry: lower wick, body, upper wick, close location, recovery from low
+- Volume ratios, average dollar volume, and quality metadata
+- Entry reference, stop reference, and risk percentage to stop
+- Setup score, rating, state, and reject reasons
+- Suggested downstream action
+
+### Step 4: Send Survivors to Trade Planning
+
+Use the output conservatively:
+
+- **A / A- candidates:** validate chart manually, check earnings/news risk, then send to `position-sizer`
+- **B candidates:** manual review or next-day hammer-high confirmation
+- **Watch candidates:** keep on watchlist / model book; wait for follow-through or tighter risk
+- **Rejected candidates:** retain for post-analysis, not for execution
+
+## Output
+
+- `stockbee_exhaustion_hammer_YYYY-MM-DD_HHMMSS.json` - Structured candidate list, metadata, thresholds, score components, and rejects
+- `stockbee_exhaustion_hammer_YYYY-MM-DD_HHMMSS.md` - Human-readable report grouped by rating/state
+
+## Resources
+
+- `references/exhaustion_hammer_methodology.md` - Stockbee-style method summary and implementation boundaries
+- `references/scoring_system.md` - Component weights, state thresholds, and failure filters
+- `references/near_close_operations.md` - Near-close operational checklist and scheduling notes
+
+## Shared FMP client
+
+Live FMP access uses the bundled generated `scripts/fmp_client.py`, loaded only
+when an FMP run starts, so offline modes still work without `requests`. CLI
+key/environment precedence, the API-call budget and successful output shapes are
+preserved. Requests use stable endpoints only; a denied, empty or failed stable
+request does not fall back to retired v3 URLs. The shared client masks raw and
+URL-encoded key echoes, retries malformed JSON once, and retries a 429 at most once,
+after a 60-second wait, before stopping on a repeated rate limit.
+
+The quote override reads stable `/quote`; its default bar date is the
+America/New_York calendar date, matching the history window.
+
+
+## Agent and Taiwan data extension (this fork)
+
+The upstream method above remains authoritative. For Codex, Claude, OpenCode,
+and Taiwan-listed stocks/ETFs, read [the additive data-source guide](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/UPSTREAM_DATA_EXTENSION.md)
+and [Taiwan market conventions](https://github.com/world4jason/agent-trading-skills/blob/codex/taiwan-market/TAIWAN_MARKET.md) before applying it.
+Use the same methodology, criteria and calculators; disclose unavailable inputs.
+Do not substitute the experimental batch screener for this skill's original pipeline.

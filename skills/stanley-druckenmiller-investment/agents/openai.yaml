@@ -1,4 +1,4 @@
 interface:
-  display_name: "以宏觀投資框架研究台股"
-  short_description: "Taiwan stocks and ETFs: stanley-druckenmiller-investment"
-  default_prompt: "使用 $stanley-druckenmiller-investment，以宏觀投資框架研究台股。"
+  display_name: "stanley-druckenmiller-investment"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $stanley-druckenmiller-investment with its original method; apply the Taiwan data extension when the requested market is Taiwan."

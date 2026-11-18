@@ -1,4 +1,4 @@
 interface:
-  display_name: "審查台股 skill 的程式與分析品質"
-  short_description: "Taiwan stocks and ETFs: dual-axis-skill-reviewer"
-  default_prompt: "使用 $dual-axis-skill-reviewer，審查台股 skill 的程式與分析品質。"
+  display_name: "dual-axis-skill-reviewer"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $dual-axis-skill-reviewer with its original method; apply the Taiwan data extension when the requested market is Taiwan."

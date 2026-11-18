@@ -9,6 +9,10 @@ from numbers import Real
 from zoneinfo import ZoneInfo
 
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
+
+# Like Wealthfolio's provider circuit: stop a throttled source, not every source.
+_BACKOFF_UNTIL = 0.0
 
 INFO_FIELDS = (
     "symbol",
@@ -110,12 +114,22 @@ def snapshot(symbol, *, capabilities=None, market="tw", compact=False):
     ticker = yf.Ticker(symbol)
 
     def collect(key, getter):
+        global _BACKOFF_UNTIL
+        if time.monotonic() < _BACKOFF_UNTIL:
+            output[key] = {} if key in ("info", "institutional_summary") else []
+            output["errors"][key] = "Yahoo rate limit reached; retry deferred"
+            return
         for attempt in range(2):
             try:
                 value = getter()
                 if not value:
                     output["errors"][key] = "Yahoo returned no data"
                 output[key] = value
+                return
+            except YFRateLimitError:
+                _BACKOFF_UNTIL = time.monotonic() + 300
+                output[key] = {} if key in ("info", "institutional_summary") else []
+                output["errors"][key] = "Yahoo rate limit reached; retry deferred"
                 return
             except Exception:
                 if attempt == 0:

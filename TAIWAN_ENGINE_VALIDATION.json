@@ -1,4 +1,7 @@
 {
+  "historical_artifact": true,
+  "current_contract": "UPSTREAM_DATA_EXTENSION.md",
+  "notice": "Prior experimental fork validation, not current upstream pipeline parity or provider-priority policy.",
   "project": "agent-trading-skills",
   "upstream_commit": "fdfff010e1efe181ebe9c11a0109ef5f8b736147",
   "edition": "taiwan",

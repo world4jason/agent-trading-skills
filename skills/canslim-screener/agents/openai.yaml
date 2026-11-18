@@ -1,4 +1,4 @@
 interface:
-  display_name: "篩選台股 CANSLIM 成長條件"
-  short_description: "Taiwan stocks and ETFs: canslim-screener"
-  default_prompt: "使用 $canslim-screener，篩選台股 CANSLIM 成長條件。"
+  display_name: "canslim-screener"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $canslim-screener with its original method; apply the Taiwan data extension when the requested market is Taiwan."

@@ -1,4 +1,4 @@
 interface:
-  display_name: "檢查台股交易前紀律"
-  short_description: "Taiwan stocks and ETFs: pre-trade-discipline-gate"
-  default_prompt: "使用 $pre-trade-discipline-gate，檢查台股交易前紀律。"
+  display_name: "pre-trade-discipline-gate"
+  short_description: "Original method with Taiwan data guidance"
+  default_prompt: "Use $pre-trade-discipline-gate with its original method; apply the Taiwan data extension when the requested market is Taiwan."
