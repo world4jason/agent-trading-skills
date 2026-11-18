@@ -3,7 +3,7 @@
 Trading skills for Codex, Claude, OpenCode, and other AI agents.
 
 本專案是 [tradermonty/claude-trading-skills](https://github.com/tradermonty/claude-trading-skills)
-的台股版，研究範圍為 TWSE/TPEX 上市、上櫃股票與 ETF。保留 MIT 授權與上游研究方法；
+的 agent 研究版；台股工具涵蓋 TWSE/TPEX 股票與 ETF，全市場掃描另支援美國交易所股票／ETF。保留 MIT 授權與上游研究方法；
 [上游 README](UPSTREAM_README.md) 留存供追溯。
 目標版本：[world4jason/agent-trading-skills，`codex/taiwan-market`](https://github.com/world4jason/agent-trading-skills/tree/codex/taiwan-market)。
 
@@ -39,6 +39,7 @@ provider 取得整段範圍，不拼接不同來源的部分日線。FinMind 可
 `--kind stock|etf` 可縮小範圍。報告列出來源、日期、實際處理標的與缺資料原因；部分結果
 不代表全市場結果。
 
+- [台股／美股全市場掃描與完整報告](CROSS_MARKET_SCAN.md)
 - [各引擎的確切範圍、檢查與限制](TAIWAN_ENGINES.md)
 - [Codex 執行環境與預設安裝](CODEX_RUNTIME.md)
 - [台股市場與資料口徑](TAIWAN_MARKET.md)

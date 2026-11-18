@@ -134,11 +134,16 @@ def _event_from_yahoo(listing, snapshot, as_of):
         stamp = _timestamp(row.get("date"))
         if stamp is None or stamp.timetz().replace(tzinfo=None) == time(0):
             continue
-        local = stamp.astimezone(_TAIPEI)
+        local = stamp.astimezone(ZoneInfo(listing.get("timezone", "Asia/Taipei")))
         if local.date() > as_of:
             continue
         clock = local.time().replace(tzinfo=None)
-        timing = "bmo" if clock < time(9) else "amc" if clock >= time(13, 30) else None
+        us = listing.get("market") == "us"
+        opening, closing = (time(9, 30), time(16)) if us else (time(9), time(13, 30))
+        session_close = snapshot.get("session_closes", {}).get(local.date().isoformat())
+        if us and session_close:
+            closing = time.fromisoformat(session_close)
+        timing = "bmo" if clock < opening else "amc" if clock >= closing else None
         if timing is None:
             continue
         found.append(
@@ -282,7 +287,7 @@ def _setup_score(gap_pct, pattern):
     return min(100.0, float(score))
 
 
-def _liquidity(bars, fx, sessions):
+def _liquidity(bars, fx, sessions, currency="TWD"):
     bar_end = date.fromisoformat(bars[-1]["date"])
     expected = sorted(day for day in sessions if day <= bar_end)[-20:]
     expected_set = set(expected)
@@ -309,14 +314,17 @@ def _liquidity(bars, fx, sessions):
         "score": None,
         "score_reason": None,
     }
-    if fx is None:
+    result["currency"] = currency
+    if currency == "USD":
+        result.update(adv20_twd=None, price_twd=None)
+    if fx is None and currency != "USD":
         result["score_reason"] = "Valid dated Yahoo TWD/USD rate unavailable"
         return result
-    fx_date, rate = fx
+    fx_date, rate = (bar_end, 1.0) if currency == "USD" else fx
     result.update(
         price_usd=round(bars[-1]["close"] / rate, 4),
-        fx_date=fx_date.isoformat(),
-        fx_rate_twd_per_usd=rate,
+        fx_date=fx_date.isoformat() if currency != "USD" else None,
+        fx_rate_twd_per_usd=rate if currency != "USD" else None,
     )
     if not sample_complete:
         result["score_reason"] = "Complete 20-session liquidity sample unavailable"
@@ -417,7 +425,9 @@ def evaluate(listing, bars, events=None, snapshot=None, sessions=None):
     )
     risk_reward = calculate_risk_reward(current_price, red)
     setup_score = _setup_score(gap_pct, pattern)
-    liquidity = _liquidity(parsed_bars, _fx(snapshot, bar_end), session_dates)
+    liquidity = _liquidity(
+        parsed_bars, _fx(snapshot, bar_end), session_dates, listing.get("currency", "TWD")
+    )
     composite = None
     if liquidity["score"] is not None:
         composite = calculate_composite_score(

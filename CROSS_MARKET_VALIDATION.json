@@ -1,0 +1,194 @@
+{
+  "run_date": "2026-11-18",
+  "summary": {
+    "start": "2025-01-01",
+    "end": "2026-11-17",
+    "requested_symbols": 14003,
+    "processed_symbols": 14003,
+    "not_processed_symbols": 0,
+    "scan_status": "finished",
+    "data_status": "partial",
+    "evaluation_errors": 0,
+    "engine_revisions": [
+      "a0dedefa96a98f13"
+    ],
+    "coverage": {
+      "tw": {
+        "symbols": 2324,
+        "symbols_with_prices": 2066,
+        "symbols_without_prices": 258,
+        "stock": 1956,
+        "etf": 368,
+        "symbols_with_missing_data": 2041,
+        "symbols_with_complete_candidate": 269
+      },
+      "us": {
+        "symbols": 11679,
+        "symbols_with_prices": 1319,
+        "symbols_without_prices": 10360,
+        "stock": 5901,
+        "etf": 5778,
+        "symbols_with_missing_data": 11149,
+        "symbols_with_complete_candidate": 206
+      }
+    },
+    "strategy_results": {
+      "tw": {
+        "vcp": {
+          "evaluated": 2000,
+          "insufficient_data": 324,
+          "qualified": 4,
+          "with_missing_data": 324
+        },
+        "momentum-burst": {
+          "evaluated": 2057,
+          "insufficient_data": 267,
+          "qualified": 194,
+          "with_missing_data": 267
+        },
+        "exhaustion-hammer": {
+          "evaluated": 2050,
+          "insufficient_data": 274,
+          "qualified": 53,
+          "with_missing_data": 274
+        },
+        "parabolic": {
+          "evaluated": 2051,
+          "insufficient_data": 273,
+          "qualified": 1,
+          "with_missing_data": 273
+        },
+        "canslim": {
+          "evaluated": 1748,
+          "insufficient_data": 208,
+          "not_applicable": 368,
+          "qualified": 0,
+          "with_missing_data": 1836
+        },
+        "value-dividend": {
+          "evaluated": 609,
+          "insufficient_data": 1347,
+          "not_applicable": 368,
+          "qualified": 5,
+          "with_missing_data": 1678
+        },
+        "dividend-growth-pullback": {
+          "evaluated": 993,
+          "insufficient_data": 963,
+          "not_applicable": 368,
+          "qualified": 7,
+          "with_missing_data": 1662
+        },
+        "undervalued-growth": {
+          "evaluated": 322,
+          "insufficient_data": 1634,
+          "not_applicable": 368,
+          "qualified": 27,
+          "with_missing_data": 1858
+        },
+        "pead": {
+          "evaluated": 195,
+          "insufficient_data": 1761,
+          "not_applicable": 368,
+          "qualified": 0,
+          "with_missing_data": 1761
+        }
+      },
+      "us": {
+        "vcp": {
+          "insufficient_data": 10602,
+          "evaluated": 1077,
+          "qualified": 1,
+          "with_missing_data": 10602
+        },
+        "momentum-burst": {
+          "evaluated": 1298,
+          "insufficient_data": 10381,
+          "qualified": 134,
+          "with_missing_data": 10381
+        },
+        "exhaustion-hammer": {
+          "evaluated": 1269,
+          "insufficient_data": 10410,
+          "qualified": 12,
+          "with_missing_data": 10410
+        },
+        "parabolic": {
+          "evaluated": 1276,
+          "insufficient_data": 10403,
+          "qualified": 2,
+          "with_missing_data": 10403
+        },
+        "canslim": {
+          "not_applicable": 5778,
+          "evaluated": 652,
+          "insufficient_data": 5249,
+          "qualified": 0,
+          "with_missing_data": 5631
+        },
+        "value-dividend": {
+          "not_applicable": 5778,
+          "insufficient_data": 5313,
+          "evaluated": 588,
+          "qualified": 0,
+          "with_missing_data": 5828
+        },
+        "dividend-growth-pullback": {
+          "not_applicable": 5778,
+          "evaluated": 603,
+          "insufficient_data": 5298,
+          "qualified": 0,
+          "with_missing_data": 5822
+        },
+        "undervalued-growth": {
+          "not_applicable": 5778,
+          "insufficient_data": 5452,
+          "evaluated": 449,
+          "qualified": 81,
+          "with_missing_data": 5736
+        },
+        "pead": {
+          "not_applicable": 5778,
+          "insufficient_data": 5470,
+          "evaluated": 431,
+          "qualified": 2,
+          "with_missing_data": 5470
+        }
+      }
+    },
+    "exclusions": {
+      "non_common_stock_or_etf": 1538,
+      "test_issue": 38,
+      "exchange_traded_note": 17,
+      "unsupported_security_notation": 17
+    }
+  },
+  "strategy_rows": 126027,
+  "price_rows": 14003,
+  "reviewer": {
+    "role": "verifier",
+    "model": "gpt-6-luna",
+    "effort": "max",
+    "verdict": "READY",
+    "scope": "directory inclusion, fiscal periods, stale-result removal, identity-gated fallback, shared provider cooldown"
+  },
+  "limitations": [
+    "Provider quota/rate limits leave substantial missing data, especially US.",
+    "Current financial snapshots are not historical point-in-time observations.",
+    "No profitability/backtest/order execution verification."
+  ],
+  "artifact_sha256": {
+    "summary.json": "5913328f4fdd1ee72a8f0f54360b1852d8abbee91202c46d7e373b61f90278e5",
+    "candidates.csv": "73bc75c550130dfe5c95f7af5800aba86544c6d5900ca883cfd87b654b8fe4dc",
+    "missing-data.csv": "599508d1062fda9ced2946d02a75d112b09574536bbe1860a408bc835a165391",
+    "price-coverage.csv": "ea54f4ecc57810407c97ea435d9cbdb63fa909de01a351b3d3d34c2e8658fc73",
+    "all-results.csv": "7171d8a7b121e2fd86c691b9f1ce5635eebb69395c45cdb9caced8bc2c81b348",
+    "universe.json": "39f78abddc8bcb4d160a5322f4f423c7f1dcd0fd347ad2249d934511c0da5898"
+  },
+  "tests": {
+    "passed": 268,
+    "scope": "shared data/yahoo/screen/fundamental/PEAD/technical/position/install; cross-market scan/report/directory; navigator; upstream PEAD calculators",
+    "lint": "ruff on new cross-market modules/test and shared Yahoo/fundamental/PEAD modules; git diff --check",
+    "skill_validation": "finviz-screener and data-quality-checker quick_validate passed"
+  }
+}

@@ -60,6 +60,9 @@ def recommend(query, *, project_root=ROOT, no_api=False, time_budget="any", expe
     if taiwan_etf:
         # The ETF's underlying exposure is not the instrument's listing venue.
         scope_text = re.sub(r"(?:美股|期貨|us stock|futures?)\s*(?=etf)", "", scope_text)
+    cross_market_scan = bool(re.search(r"美股|美國|\bus (?:stocks?|etfs?)\b", scope_text)) and bool(re.search(r"掃描|選股|全市場|\bscan|\bscreen", scope_text))
+    if cross_market_scan:
+        scope_text = re.sub(r"美股|美國|\bus (?:stocks?|etfs?)\b", "", scope_text)
     unsupported = bool(re.search(r"期貨|選擇權|加密貨幣|美股|\bfutures?\b|\boptions?\b|\bcrypto\b|\bus stocks?\b", scope_text))
     excluded_ids = [name for name in metadata.get("excluded", {}) if name in text]
     explicit = [name for name in skills if name in text]
@@ -68,6 +71,9 @@ def recommend(query, *, project_root=ROOT, no_api=False, time_budget="any", expe
     primary = None
     if unsupported or excluded_ids:
         status, rationale = "out_of_scope", "本版只支援台灣上市、上櫃股票與 ETF；請將範圍外部分分開處理。"
+    elif cross_market_scan:
+        matched = ["finviz-screener", "data-quality-checker"]
+        status, rationale = "matched", "台美股批次掃描使用 scripts/market_scan.py；先讀 CROSS_MARKET_SCAN.md，保留完整母體及缺資料表。"
     elif workflow_ids:
         primary = workflows[workflow_ids[0]]
         matched = primary["required_skills"]
@@ -84,9 +90,9 @@ def recommend(query, *, project_root=ROOT, no_api=False, time_budget="any", expe
     missing = [name for name in matched if name not in skills or not (root / "skills" / name / "SKILL.md").is_file()]
     if missing:
         raise ValueError("Workflow refers to missing Taiwan skills: " + ", ".join(missing))
-    related = [w for w in workflows.values() if set(matched) & set(w["required_skills"])]
+    related = [] if cross_market_scan else [w for w in workflows.values() if set(matched) & set(w["required_skills"])]
     return {
-        "query": query, "edition": "taiwan", "scope": ["TWSE stocks", "TPEX stocks", "ETFs"],
+        "query": query, "edition": "taiwan", "scope": ["TWSE stocks", "TPEX stocks", "US exchange stocks", "ETFs"] if cross_market_scan else ["TWSE stocks", "TPEX stocks", "ETFs"],
         "routing_diagnostics": {"status": status, "explanation": rationale},
         "suggested_skills": matched, "primary_workflow": primary,
         "related_workflows": [{"id": w["id"], "display_name": w["display_name"]} for w in related],

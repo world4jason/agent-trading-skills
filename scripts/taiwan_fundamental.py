@@ -174,7 +174,7 @@ def _snapshot_state(snapshot, listing, bars, sessions):
         return False, "Yahoo snapshot dates are invalid"
     if retrieved.tzinfo is None:
         return False, "Yahoo snapshot retrieval time has no timezone"
-    if retrieved.astimezone(ZoneInfo("Asia/Taipei")).date() != as_of:
+    if retrieved.astimezone(ZoneInfo(listing.get("timezone", "Asia/Taipei"))).date() != as_of:
         return False, "Yahoo snapshot as-of date does not match its retrieval date"
     if retrieved.astimezone(timezone.utc) > datetime.now(timezone.utc) + timedelta(minutes=5):
         return False, "Yahoo snapshot retrieval time is in the future"
@@ -197,8 +197,6 @@ def _yahoo_rows(snapshot, key, cutoff, *, annual=False):
         for row in snapshot.get(key, [])
         if isinstance(row, dict) and isinstance(row.get("date"), str) and row["date"] <= cutoff
     ]
-    if annual:
-        rows = [row for row in rows if row["date"][5:] == "12-31"]
     return sorted(rows, key=lambda row: row["date"], reverse=True)
 
 
@@ -266,43 +264,42 @@ def _finmind_quarter_rows(rows, cutoff):
 
 
 def _yahoo_quarter_rows(rows):
-    for eps_field in ("Diluted EPS", "Basic EPS"):
-        by_date = {row["date"]: row for row in rows}
-        candidates = sorted(
-            (stamp for stamp in by_date if stamp[5:] in ("03-31", "06-30", "09-30", "12-31")),
-            reverse=True,
-        )
-        revenue_fields = ("Total Revenue", "Operating Revenue")
-        for stamp in candidates:
-            try:
-                old = date.fromisoformat(stamp).replace(year=int(stamp[:4]) - 1).isoformat()
-            except ValueError:
-                continue
-            current, previous = by_date[stamp], by_date.get(old)
-            if previous is None:
-                continue
-            eps, old_eps = _number(current.get(eps_field)), _number(previous.get(eps_field))
-            for revenue_field in revenue_fields:
-                revenue, old_revenue = (
-                    _number(current.get(revenue_field)),
-                    _number(previous.get(revenue_field)),
-                )
-                if None not in (eps, old_eps, revenue, old_revenue):
-                    return {
-                        "current_period": stamp,
-                        "comparison_period": old,
-                        "eps": eps,
-                        "old_eps": old_eps,
-                        "revenue": revenue,
-                        "old_revenue": old_revenue,
-                        "eps_growth": _growth(eps, old_eps),
-                        "revenue_growth": _growth(revenue, old_revenue),
-                        "eps_source": "yahoo.quarterly_income",
-                        "revenue_source": "yahoo.quarterly_income",
-                        "eps_field": eps_field,
-                        "revenue_field": revenue_field,
-                    }
-    return None
+    if not rows:
+        return None
+    by_date = {row["date"]: row for row in rows}
+    stamp = max(by_date)
+    day = date.fromisoformat(stamp)
+    # Fiscal 52/53-week quarters need not end on a calendar quarter-end.
+    matches = [old for old in by_date if abs((day - date.fromisoformat(old)).days - 365) <= 14]
+    if len(matches) != 1:
+        return None
+    old = matches[0]
+    current, previous = by_date[stamp], by_date[old]
+
+    def pair(fields):
+        for field in fields:
+            first, second = _number(current.get(field)), _number(previous.get(field))
+            if first is not None and second is not None:
+                return first, second, field
+        field = fields[0]
+        return _number(current.get(field)), _number(previous.get(field)), field
+
+    eps, old_eps, eps_field = pair(("Diluted EPS", "Basic EPS"))
+    revenue, old_revenue, revenue_field = pair(("Total Revenue", "Operating Revenue"))
+    return {
+        "current_period": stamp,
+        "comparison_period": old,
+        "eps": eps,
+        "old_eps": old_eps,
+        "revenue": revenue,
+        "old_revenue": old_revenue,
+        "eps_growth": _growth(eps, old_eps),
+        "revenue_growth": _growth(revenue, old_revenue),
+        "eps_source": "yahoo.quarterly_income",
+        "revenue_source": "yahoo.quarterly_income",
+        "eps_field": eps_field,
+        "revenue_field": revenue_field,
+    }
 
 
 def _quarter_data(rows, snapshot, cutoff, preference, snapshot_usable):
@@ -343,6 +340,7 @@ def _yahoo_annual_rows(rows):
                 annual.append(
                     {
                         "year": row["date"][:4],
+                        "date": row["date"],
                         "eps": eps,
                         "revenue": revenue,
                         "eps_field": eps_field,
@@ -380,8 +378,8 @@ def _annual_metrics(rows, snapshot, cutoff, preference, snapshot_usable):
     if not data:
         return result
     result.update(
-        annual_eps_period_start=f"{data[3]['year']}-12-31",
-        annual_eps_period_end=f"{data[0]['year']}-12-31",
+        annual_eps_period_start=data[3].get("date", f"{data[3]['year']}-12-31"),
+        annual_eps_period_end=data[0].get("date", f"{data[0]['year']}-12-31"),
     )
     eps = [row["eps"] for row in reversed(data)]
     revenue = [row["revenue"] for row in reversed(data)]
@@ -446,9 +444,14 @@ def _component_check(component, score, scorer):
 def _ownership_pct(snapshot):
     info = snapshot.get("info", {}) if isinstance(snapshot, dict) else {}
     value = _number(info.get("heldPercentInstitutions"))
+    if value is None and isinstance(snapshot, dict):
+        summary = snapshot.get("institutional_summary")
+        value = (
+            _number(summary.get("institutionsPercentHeld")) if isinstance(summary, dict) else None
+        )
     if value is None or value < 0:
         return None
-    return value * 100 if value <= 1 else value if value <= 100 else None
+    return value * 100
 
 
 def _canslim(rows, snapshot, bars, benchmark, cutoff, preference, snapshot_usable):
@@ -468,7 +471,7 @@ def _canslim(rows, snapshot, bars, benchmark, cutoff, preference, snapshot_usabl
         "A": annual["annual_eps_growth_score"],
     }
 
-    if quarter and quarter["eps"] <= 0:
+    if quarter and quarter["eps"] is not None and quarter["eps"] <= 0:
         scores["C"] = 0
 
     n_score = s_score = l_score = m_score = None
@@ -504,7 +507,9 @@ def _canslim(rows, snapshot, bars, benchmark, cutoff, preference, snapshot_usabl
             aligned_bench = [by_date[stamp] for stamp in common_dates]
             leadership = _load("canslim-screener/scripts/calculators/leadership_calculator.py")
             l_result = leadership.calculate_leadership(
-                aligned_stock, sp500_historical=aligned_bench, rs_benchmark="^TWII"
+                aligned_stock,
+                sp500_historical=aligned_bench,
+                rs_benchmark=(snapshot or {}).get("benchmark_symbol", "^TWII"),
             )
             if (
                 l_result.get("weighted_relative_performance") is not None
@@ -529,8 +534,8 @@ def _canslim(rows, snapshot, bars, benchmark, cutoff, preference, snapshot_usabl
                 )
                 m_score = market.score_market_direction(trend, None)
                 metrics.update(
-                    taiex_50ema=ema,
-                    taiex_distance_from_50ema_pct=round(distance, 6),
+                    benchmark_50ema=ema,
+                    benchmark_distance_from_50ema_pct=round(distance, 6),
                     market_trend=trend,
                 )
             metrics.update(leadership=l_result)
@@ -546,12 +551,27 @@ def _canslim(rows, snapshot, bars, benchmark, cutoff, preference, snapshot_usabl
     observed = len(names)
     ownership = _ownership_pct(snapshot) if snapshot_usable else None
     i_score = None
-    if observed >= 30:
+    summary = snapshot.get("institutional_summary") if snapshot_usable else None
+    reported_count = (
+        _number(summary.get("institutionsCount")) if isinstance(summary, dict) else None
+    )
+    if reported_count is not None and (
+        reported_count < observed or not reported_count.is_integer()
+    ):
+        reported_count = None
+    count = int(reported_count) if reported_count is not None else observed
+    if reported_count is not None:
         institutional = _load("canslim-screener/scripts/calculators/institutional_calculator.py")
-        i_score = institutional.score_institutional_sponsorship(observed, ownership, False, None)
+        i_score = institutional.score_institutional_sponsorship(count, ownership, False, None)
     scores["I"] = i_score
     metrics.update(
         institutional_holders_observed_minimum=observed if holders else None,
+        institutional_holders_reported_total=int(reported_count)
+        if reported_count is not None
+        else None,
+        institutional_count_source="yahoo.major_holders"
+        if reported_count is not None
+        else "observed lower bound",
         institutional_ownership_pct=ownership,
         institutional_score=i_score,
         canslim_component_scores=scores,
@@ -701,7 +721,7 @@ def _health(snapshot, datasets, cutoff, usable, preference, sector):
         )
         if net_income is not None:
             roe = net_income / equity
-    roe_pct = roe * 100 if roe is not None and abs(roe) <= 1 else roe
+    roe_pct = roe * 100 if roe is not None else None
     roe_quality_score = min(max(roe_pct, 0) / 20 * 50, 50) if roe_pct is not None else None
     payout = None
     net_income = None
@@ -714,7 +734,7 @@ def _health(snapshot, datasets, cutoff, usable, preference, sector):
         payout = dividends_paid / net_income * 100
     elif usable:
         raw_payout = _number(info.get("payoutRatio"))
-        payout = raw_payout * 100 if raw_payout is not None and 0 <= raw_payout <= 1 else raw_payout
+        payout = raw_payout * 100 if raw_payout is not None else None
     fcf_payout = (
         dividends_paid / fcf * 100
         if dividends_paid is not None and fcf is not None and fcf > 0

@@ -48,3 +48,15 @@ def test_mixed_adjustment_bases_skip_relative_strength():
     result=engine.evaluate("vcp",{"kind":"stock"},stock,benchmark=benchmark)
     assert "benchmark_relative_strength" not in result["metrics"]
     assert any("basis differs" in warning for warning in result["warnings"])
+
+
+def test_dollar_trigger_only_applies_to_usd_prices():
+    history=bars()
+    prior=history[-2]["close"]
+    history[-1].update(open=prior+.1,low=prior,high=prior+1.2,close=prior+1,volume=1000000)
+    usd=engine.evaluate("momentum-burst",{"kind":"stock","currency":"USD"},history)
+    twd=engine.evaluate("momentum-burst",{"kind":"stock","currency":"TWD"},history)
+    assert usd["passed"] is True
+    assert twd["passed"] is False
+    assert usd["metrics"]["price_unit"]=="USD"
+    assert "dollar_breakout" in usd["metrics"]["trigger"]["trigger_tags"]

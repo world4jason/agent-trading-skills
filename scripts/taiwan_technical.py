@@ -76,19 +76,20 @@ def evaluate(strategy, listing, bars, *, benchmark=None, expected_session=None):
                 warnings.append("Insufficient common dates for relative strength")
         return _result(pattern.get("valid_vcp") and trend["passed"], metrics, warnings)
     if strategy == "momentum-burst":
+        usd = listing.get("currency") == "USD"
         module = _load("stockbee-momentum-burst-screener/scripts/screen_momentum_burst.py")
         normalized = module.normalize_bars(recent)
-        args = Namespace(min_volume=100_000, four_pct_threshold=4.0, dollar_threshold=float("inf"),
+        args = Namespace(min_volume=100_000, four_pct_threshold=4.0, dollar_threshold=0.90 if usd else float("inf"),
                          nine_million_volume=9_000_000, max_prev_day_gain_for_range=2.0)
         trigger = module.detect_triggers(normalized, args)
         base = module.detect_base_profile(normalized, 3, 20, 15.0, 5.0)
         risk = (bars[-1]["close"] - bars[-1]["low"]) / bars[-1]["close"] * 100
-        checks = {"price_volume_trigger": bool(set(trigger.trigger_tags) & {"4pct_breakout", "range_expansion"}),
+        checks = {"price_volume_trigger": bool(set(trigger.trigger_tags) & ({"4pct_breakout", "range_expansion", "dollar_breakout"} if usd else {"4pct_breakout", "range_expansion"})),
                   "volume_floor": bars[-1]["volume"] >= 100_000, "risk_distance": 0 < risk <= 10}
         metrics = {"trigger": asdict(trigger), "base": asdict(base), "checks": checks,
-                   "risk_pct_to_low": risk, "volume_unit": "shares", "price_unit": "TWD"}
+                   "risk_pct_to_low": risk, "volume_unit": "shares", "price_unit": listing.get("currency", "TWD")}
         return _result(all(checks.values()), metrics,
-                       ["USD dollar-breakout trigger disabled; original percentage/volume trigger rules retained",
+                       ["Original USD dollar-breakout trigger enabled" if usd else "USD dollar-breakout trigger disabled; original percentage/volume trigger rules retained",
                         "Pattern screen only; market regime and trade execution not evaluated"])
     if strategy == "exhaustion-hammer":
         module = _load("stockbee-exhaustion-hammer-screener/scripts/screen_exhaustion_hammer.py")
@@ -106,7 +107,7 @@ def evaluate(strategy, listing, bars, *, benchmark=None, expected_session=None):
                   "high_age": 3 <= pullback.days_since_recent_high <= 30, "risk_distance": 0 < risk <= 12,
                   "volume_floor": bars[-1]["volume"] >= 100_000}
         return _result(all(checks.values()), {"hammer": asdict(hammer), "pullback": asdict(pullback),
-                       "checks": checks, "risk_pct_to_stop_reference": risk, "price_unit": "TWD"},
+                       "checks": checks, "risk_pct_to_stop_reference": risk, "price_unit": listing.get("currency", "TWD")},
                        ["Pattern screen only; USD size/liquidity gates removed; institutional quality is not inferred"])
     base = "parabolic-short-trade-planner/scripts/calculators/"
     closes = [b["close"] for b in bars]

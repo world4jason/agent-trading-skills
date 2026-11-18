@@ -96,3 +96,15 @@ def test_taiwan_etf_underlying_is_not_confused_with_listing_scope(query):
     result = nav.recommend(query)
     assert result["routing_diagnostics"]["status"] != "out_of_scope"
     assert "us-stock-analysis" in result["suggested_skills"]
+
+
+def test_cross_market_full_scan_routes_to_batch_entrypoint():
+    result=nav.recommend("台股美股全市場掃描，列出缺資料")
+    assert result["routing_diagnostics"]["status"]=="matched"
+    assert result["suggested_skills"]==["finviz-screener","data-quality-checker"]
+    assert "US exchange stocks" in result["scope"]
+    assert result["related_workflows"]==[]
+
+
+def test_us_scan_does_not_enable_options():
+    assert nav.recommend("美股選股與選擇權")['routing_diagnostics']['status']=="out_of_scope"

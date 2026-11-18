@@ -356,6 +356,7 @@ def test_non_finite_financial_values_are_unknown():
 def test_canslim_full_seven_components_can_pass_and_uses_reported_annual_eps():
     as_of, bars, benchmark, sessions = _recent_market_inputs()
     snapshot = _snapshot(as_of)
+    snapshot["institutional_summary"] = {"institutionsCount": len(snapshot["institutional_holders"])}
     result = evaluate(
         "canslim",
         {"kind": "stock", "symbol": "2330.TW"},
@@ -606,3 +607,60 @@ def test_loss_reduction_does_not_pass_canslim_earnings():
         assert result["metrics"]["checks"]["C"]["status"] == expected
         assert result["passed"] is not True
         assert result["metrics"]["eps_growth"] is None
+
+
+def test_reported_institution_total_does_not_use_top_holders_list_as_total():
+    as_of, bars, benchmark, sessions = _recent_market_inputs()
+    snapshot = _snapshot(as_of)
+    snapshot["institutional_holders"] = [{"Holder": "Only visible holder"}]
+    snapshot["institutional_summary"] = {"institutionsCount": 727.0}
+    result = evaluate(
+        "canslim",
+        {"kind": "stock", "symbol": "2330.TW"},
+        bars,
+        datasets={STATEMENTS: _finmind_quarters(as_of)},
+        benchmark=benchmark,
+        snapshot=snapshot,
+        sessions=sessions,
+    )
+    assert result["metrics"]["institutional_holders_reported_total"] == 727
+    assert result["metrics"]["checks"]["I"]["status"] == "pass"
+    snapshot["institutional_summary"]["institutionsCount"] = 0
+    snapshot["institutional_holders"] = []
+    snapshot["info"]["heldPercentInstitutions"] = 0
+    result = evaluate(
+        "canslim",
+        {"kind": "stock", "symbol": "2330.TW"},
+        bars,
+        datasets={STATEMENTS: _finmind_quarters(as_of)},
+        benchmark=benchmark,
+        snapshot=snapshot,
+        sessions=sessions,
+    )
+    assert result["metrics"]["checks"]["I"]["status"] == "fail"
+
+
+def test_empty_provider_holder_summary_does_not_crash_canslim():
+    as_of, bars, benchmark, sessions = _recent_market_inputs()
+    snapshot = _snapshot(as_of)
+    snapshot["institutional_summary"] = []
+    snapshot["institutional_holders"] = []
+    snapshot["info"].pop("heldPercentInstitutions", None)
+    result = evaluate(
+        "canslim",
+        {"kind": "stock", "symbol": "2330.TW"},
+        bars,
+        datasets={STATEMENTS: _finmind_quarters(as_of)},
+        benchmark=benchmark,
+        snapshot=snapshot,
+        sessions=sessions,
+    )
+    assert result["metrics"]["checks"]["I"]["status"] == "unknown"
+
+
+def test_partial_holder_list_cannot_supply_exact_nonmonotonic_score():
+    as_of,bars,benchmark,sessions=_recent_market_inputs()
+    snapshot=_snapshot(as_of)
+    result=evaluate("canslim",{"kind":"stock","symbol":"2330.TW"},bars,datasets={STATEMENTS:_finmind_quarters(as_of)},benchmark=benchmark,snapshot=snapshot,sessions=sessions)
+    assert result["metrics"]["checks"]["I"]["status"]=="unknown"
+    assert result["metrics"]["canslim_score"] is None

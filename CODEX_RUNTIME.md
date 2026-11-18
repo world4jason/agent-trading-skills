@@ -5,8 +5,7 @@ The default Codex installation uses the repository `.venv/bin/python` and
 Other agents can load the standard `SKILL.md` files through their own skills
 directories. This repository does not claim client-specific testing for them.
 
-Scope: TWSE/TPEX-listed stocks and ETFs, including Taiwan-listed offshore-exposure
-ETFs. No futures/options contracts, brokerage orders, US tax workflows or MT5.
+Taiwan tools cover TWSE/TPEX stocks and ETFs. `scripts/market_scan.py` also covers US exchange-listed stocks and ETFs; read [cross-market scan](CROSS_MARKET_SCAN.md). No futures/options contracts, brokerage orders, US tax workflows or MT5.
 
 Read [Taiwan market conventions](TAIWAN_MARKET.md). Actual automatic screener
 entrypoints and supported checks are documented in [TAIWAN_ENGINES.md](TAIWAN_ENGINES.md).

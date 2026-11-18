@@ -1,14 +1,14 @@
 ---
 name: finviz-screener
-description: 依條件篩選台股與 ETF。以可得的台灣股票總覽及財報/價格欄位執行使用者篩選；名稱保留相容性，本版不使用 FINVIZ；公司篩選與
-  ETF 篩選分開。 適用於台灣上市、上櫃股票與 ETF 的研究請求；資料來源依能力與使用者指定選擇。
+description: 依條件篩選台灣及美國交易所股票與 ETF，支援完整母體的批次掃描、候選與缺資料報告；使用 Yahoo 與台股 FinMind 資料，不使用
+  FINVIZ。
 ---
 
-# 依條件篩選台股與 ETF
+# 依條件篩選台美股與 ETF
 
 以可得的台灣股票總覽及財報/價格欄位執行使用者篩選；名稱保留相容性，本版不使用 FINVIZ；公司篩選與 ETF 篩選分開。
 
-## 執行流程
+## 台股執行流程
 
 1. 先讀 [台股執行環境](../../CODEX_RUNTIME.md) 與 [台股規則](../../TAIWAN_MARKET.md)。
 2. 依 [本類分析操作指引](../../references/taiwan-fundamental.md) 取得本題需要的資料；不要自動擴大標的或日期範圍。
@@ -25,3 +25,7 @@ description: 依條件篩選台股與 ETF。以可得的台灣股票總覽及財
 ## 台股批次選股
 
 需要自動掃描時，先讀 [台股引擎範圍](../../TAIWAN_ENGINES.md)，將使用者的條件對應到 `scripts/taiwan_screen.py` 支援的策略與市場範圍。該工具支援上市、上櫃與 ETF，不使用 FINVIZ。未實作的條件不可宣稱已自動驗證；基本面的 `preliminary_match` 也不是完整策略通過。
+
+## 台股與美股全市場批次
+
+使用者要求台股／美股全市場掃描時，讀 [跨市場掃描說明](../../CROSS_MARKET_SCAN.md)，使用 `scripts/market_scan.py` 與 `scripts/market_report.py`。官方目錄、實際處理數、來源日期與缺資料表必須保留；台灣 TWD／台北時間與美國 USD／美東時間分開，ETF 公司財報條件不適用。

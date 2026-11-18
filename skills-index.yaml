@@ -131,16 +131,17 @@ skills:
     financial_logic_review: not_verified
     empirical_validation: not_verified
 - id: data-quality-checker
-  display_name: 檢查台股研究資料品質
+  display_name: 檢查台股／美股資料品質
   category: meta
   status: beta
-  summary: 逐項核對來源、日期、幣別、股/張單位、還原口徑、缺值及計算；將資料缺口與數字錯誤分開，勿修改原始資料以通過檢查。
+  summary: 核對台股／美股掃描的來源、日期、幣別、交易日與資料缺口；不修改原始資料以通過檢查。
   market_scope:
   - TWSE
   - TPEX
+  - US exchanges
   - stocks
   - ETFs
-  execution_mode: codex_guided_taiwan
+  execution_mode: codex_guided_cross_market
   integrations:
   - id: user_input
     type: local_file
@@ -640,16 +641,17 @@ skills:
     financial_logic_review: not_verified
     empirical_validation: not_verified
 - id: finviz-screener
-  display_name: 依條件篩選台股與 ETF
+  display_name: 依條件篩選台股／美股與 ETF
   category: swing-opportunity
   status: beta
-  summary: 以可得的台灣股票總覽及財報/價格欄位執行使用者篩選；名稱保留相容性，本版不使用 FINVIZ；公司篩選與 ETF 篩選分開。
+  summary: 依條件篩選台灣及美國交易所股票與 ETF；保留全市場母體、候選與缺資料清單，不使用 FINVIZ。
   market_scope:
   - TWSE
   - TPEX
+  - US exchanges
   - stocks
   - ETFs
-  execution_mode: codex_guided_taiwan
+  execution_mode: codex_guided_cross_market
   integrations:
   - id: user_input
     type: local_file

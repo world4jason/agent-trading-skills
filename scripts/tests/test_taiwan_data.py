@@ -250,3 +250,18 @@ def test_missing_expected_session_uses_alternative(monkeypatch):
     result=td.prices("2330","2024-01-02","2024-01-03",expected_session="2024-01-03")
     assert result["source"] == "finmind"
     assert result["as_of"] == "2024-01-03"
+
+
+def test_finmind_402_quota_is_not_a_plan_error_and_backs_off(monkeypatch):
+    from types import SimpleNamespace
+    from scripts import taiwan_data as module
+    calls=[]
+    def request(*args,**kwargs):
+        calls.append(1)
+        return SimpleNamespace(status_code=402,json=lambda:{"status":402,"msg":"Requests reach the upper limit. https://finmindtrade.com/"})
+    monkeypatch.setattr(module,"_FINMIND_BACKOFF_UNTIL",0)
+    monkeypatch.setattr(module.requests,"get",request)
+    for _ in range(2):
+        with pytest.raises(module.DataError,match="rate limit"):
+            module._finmind("TaiwanStockPrice",symbol="2330",start="2026-11-16",end="2026-11-17")
+    assert len(calls)==1

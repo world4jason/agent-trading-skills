@@ -18,6 +18,8 @@ import requests
 
 
 FINMIND_URL = "https://api.finmindtrade.com/api/v4/data"
+_FINMIND_BACKOFF_UNTIL = 0.0
+_FINMIND_BACKOFF_FILE = None
 DATASETS = frozenset({
     "TaiwanStockFinancialStatements",
     "TaiwanStockBalanceSheet",
@@ -72,7 +74,24 @@ def _bounds(start: str, end: str) -> tuple[date, date]:
     return first, last
 
 
+def _defer_finmind():
+    global _FINMIND_BACKOFF_UNTIL
+    _FINMIND_BACKOFF_UNTIL = time.monotonic() + 300
+    if _FINMIND_BACKOFF_FILE is not None:
+        temporary = _FINMIND_BACKOFF_FILE.with_suffix(f".{os.getpid()}.tmp")
+        temporary.write_text(str(time.time() + 300))
+        os.replace(temporary, _FINMIND_BACKOFF_FILE)
+
+
 def _finmind(dataset: str, *, symbol: str | None = None, start: str | None = None, end: str | None = None) -> list[dict]:
+    shared_deadline = 0
+    if _FINMIND_BACKOFF_FILE is not None and _FINMIND_BACKOFF_FILE.exists():
+        try:
+            shared_deadline = float(_FINMIND_BACKOFF_FILE.read_text())
+        except (ValueError, OSError):
+            raise DataError("FinMind cooldown state unavailable") from None
+    if time.monotonic() < _FINMIND_BACKOFF_UNTIL or time.time() < shared_deadline:
+        raise DataError("FinMind rate limit reached; retry deferred")
     params = {"dataset": dataset}
     if symbol is not None:
         params["data_id"] = symbol
@@ -88,14 +107,22 @@ def _finmind(dataset: str, *, symbol: str | None = None, start: str | None = Non
                 time.sleep(0.25)
                 continue
             raise DataError("FinMind request failed") from None
-        if response.status_code in (429, 500, 502, 503, 504) and attempt == 0:
+        if response.status_code in (500, 502, 503, 504) and attempt == 0:
             time.sleep(0.25)
             continue
         if response.status_code in (401, 403):
             raise DataError("FinMind access denied; check FINMIND_TOKEN or plan")
         if response.status_code == 402:
+            try:
+                message = response.json().get("msg", "")
+            except (ValueError, TypeError, AttributeError):
+                message = ""
+            if isinstance(message, str) and "upper limit" in message.lower():
+                _defer_finmind()
+                raise DataError("FinMind rate limit reached")
             raise DataError("FinMind dataset requires a higher plan")
         if response.status_code == 429:
+            _defer_finmind()
             raise DataError("FinMind rate limit reached")
         if response.status_code != 200:
             raise DataError("FinMind HTTP error")
@@ -108,8 +135,12 @@ def _finmind(dataset: str, *, symbol: str | None = None, start: str | None = Non
         if payload.get("status") in (401, 403):
             raise DataError("FinMind access denied; check FINMIND_TOKEN or plan")
         if payload.get("status") == 402:
+            if "upper limit" in str(payload.get("msg", "")).lower():
+                _defer_finmind()
+                raise DataError("FinMind rate limit reached")
             raise DataError("FinMind dataset requires a higher plan")
         if payload.get("status") == 429:
+            _defer_finmind()
             raise DataError("FinMind rate limit reached")
         if payload.get("status") != 200 or not isinstance(payload.get("data"), list):
             raise DataError("FinMind dataset unavailable")
@@ -236,9 +267,11 @@ def _bar(row: dict, listing: dict, first: date, last: date, source: str) -> dict
         open_, high, low, close = (_number(row[key]) for key in keys)
         volume = row["Trading_Volume"] if source == "finmind" else row["volume"]
     except KeyError:
-        raise DataError("Missing price bar field") from None
+        raise DataError(f"Missing price bar field on {stamp.isoformat()}") from None
+    except DataError as exc:
+        raise DataError(f"{exc} on {stamp.isoformat()}") from None
     if any(price <= 0 for price in (open_, high, low, close)) or high < max(open_, close, low) or low > min(open_, close, high):
-        raise DataError("Invalid price bar")
+        raise DataError(f"Invalid price bar on {stamp.isoformat()}")
     if isinstance(volume, bool) or not isinstance(volume, Real):
         raise DataError("Invalid share volume")
     try:
@@ -247,7 +280,7 @@ def _bar(row: dict, listing: dict, first: date, last: date, source: str) -> dict
         raise DataError("Invalid share volume") from None
     if not math.isfinite(volume_number) or volume_number < 0 or int(volume_number) != volume_number:
         raise DataError("Invalid share volume")
-    bar = {"date": stamp.isoformat(), "symbol": listing["symbol"], "open": open_, "high": high, "low": low, "close": close, "volume": int(volume), "volume_unit": "shares", "currency": "TWD", "timezone": "Asia/Taipei", "source": source, "adjustment": "unadjusted" if source == "finmind" else "provider_reported_split_adjusted_dividend_unadjusted"}
+    bar = {"date": stamp.isoformat(), "symbol": listing["symbol"], "open": open_, "high": high, "low": low, "close": close, "volume": int(volume), "volume_unit": "shares", "currency": listing.get("currency", "TWD"), "timezone": listing.get("timezone", "Asia/Taipei"), "source": source, "adjustment": "unadjusted" if source == "finmind" else "provider_reported_split_adjusted_dividend_unadjusted"}
     if source == "yahoo":
         bar["adjustment_verified"] = False
     return bar
